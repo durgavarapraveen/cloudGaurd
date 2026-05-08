@@ -82,3 +82,28 @@ def verify_token(
 def invalidate_token(token: str):
     #invalidate the token
     pass
+
+def checkRefreshTokenValidity(token: str, secret_key: str) -> dict:
+    try:
+        payload = jwt.decode(
+            token,
+            secret_key,
+            algorithms=[ALGORITHM]
+        )
+
+        if payload.get("type") != "refresh":
+            raise jwt.InvalidTokenError("Invalid token type")
+        
+        #if Token expired 
+        if payload.get("exp") < datetime.now(timezone.utc).timestamp():
+            raise jwt.ExpiredSignatureError(status_code=401, detail="Please Login again")
+        
+        # get user id from payload
+        user_id = payload.get("sub")
+
+        return user_id
+
+    except jwt.ExpiredSignatureError:
+        raise Exception("Token has expired")
+    except jwt.InvalidTokenError as e:
+        raise Exception(f"Invalid token: {str(e)}")

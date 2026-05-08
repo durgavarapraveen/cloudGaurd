@@ -6,9 +6,9 @@ class CreateUserRequest(BaseModel):
 
     email: EmailStr
 
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=128)
     
-    permissions: list[str] = Field(default_factory=list)
+    roles: list[str] = Field(default_factory=list)
 
 
 class UserResponse(BaseModel):

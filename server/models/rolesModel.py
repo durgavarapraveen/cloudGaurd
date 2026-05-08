@@ -3,11 +3,8 @@ import uuid
 from sqlalchemy import String, Table, Column, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase
 from uuid6 import uuid7
-
-class Base(DeclarativeBase):
-    pass
+from .Base import Base
 
 role_permissions = Table(
     "role_permissions",
@@ -47,9 +44,3 @@ class Role(Base):
         default=False
     )
     
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True
-    )
-    
-    created_at: Mapped[str] = mapped_column(String(50))

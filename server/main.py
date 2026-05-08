@@ -1,4 +1,3 @@
-import boto3
 import os
 from fastapi import FastAPI
 from api.aws_routes import router as aws_router
@@ -7,15 +6,37 @@ from api.azure_policy_loader import router as azure_policy_router
 from api.aws_checker_routes import router as aws_checker_router
 from api.aws_scanner_route import router as aws_scanner_router
 from api.yaml import router as yaml_router
+from api.auth_routes import router as auth_router
+from api.users_routes import router as user_router
+from api.roles_routes import router as role_router
+from api.permission_route import router as permission_router
 from db.postgressDB import engine
 from middlewares.userVerificationMiddleware import AuthMiddleware
-from middlewares.userPermissions import require_permission
-
-
 from fastapi.middleware.cors import CORSMiddleware
+from models.Base import Base
+
+from models.userModel import User
+from models.rolesModel import Role
+from models.permission import Permission
 
 app = FastAPI()
 
+print(__file__)
+
+# 1. Routers first
+app.include_router(auth_router)
+app.include_router(aws_router)
+app.include_router(aws_policy_router)
+app.include_router(azure_policy_router)
+app.include_router(aws_checker_router)
+app.include_router(aws_scanner_router)
+app.include_router(yaml_router)
+app.include_router(user_router)
+app.include_router(role_router)
+app.include_router(permission_router)
+
+
+# 2. Middlewares after
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,29 +44,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuthMiddleware)
 
-
+# 3. Root route
 @app.get("/")
 def read_root():
     return {"message": "Welcome to CloudGuard API!"}
 
+# 4. Startup event
 @app.on_event("startup")
 async def startup():
-
     try:
+        
         async with engine.begin() as conn:
-            await conn.run_sync(lambda conn: None)
-
+            await conn.run_sync(Base.metadata.create_all)
         print("PostgreSQL connected successfully")
-
     except Exception as e:
         print("Database connection failed")
         print(e)
-
-app.include_router(aws_router)
-app.include_router(aws_policy_router)
-app.include_router(azure_policy_router)
-app.include_router(aws_checker_router)
-app.include_router(aws_scanner_router)
-app.include_router(yaml_router)
-app.add_middleware(AuthMiddleware)

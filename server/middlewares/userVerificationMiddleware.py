@@ -9,16 +9,21 @@ load_dotenv()
 
 SECRET = os.getenv("JWT_SECRET_KEY", "")    
 
+EXCLUDED_ROUTES = [
+    "/auth/register",
+    "/auth/login",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/docs/oauth2-redirect",
+    "/"
+]
+
 class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
 
-        public_routes = [
-            "/",
-            "/login"
-        ]
-
-        if request.url.path in public_routes:
+        if request.url.path in EXCLUDED_ROUTES:
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
@@ -44,6 +49,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 "permissions",
                 []
             )
+            print(f"User permissions::::::::::::::::: {request.state.permissions}")
 
         except Exception:
             return JSONResponse(

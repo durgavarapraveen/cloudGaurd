@@ -3,16 +3,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgressDB import get_db
 
-from services.auth_service import register_user, login_user, delete_user, logout_user, refresh_user_token
+from services.auth_service import (register_user, login_user, delete_user, logout_user, refresh_user_token)
 
 from schemas.user_schema import (
     CreateUserRequest,
     UserLoginRequest
 )
+from middlewares.userPermissions import require_permission
 
 router = APIRouter(
     prefix="/auth",
-    tags=["Authentication"]
+    tags=["Auth"]
 )
 
 @router.post("/register")
@@ -35,7 +36,7 @@ async def login(
 ):
     return await login_user(db, data)
 
-@router.put("logout/{user_id}")
+@router.put("/logout/{user_id}")
 async def logout(
     user_id: str,
     db: AsyncSession = Depends(get_db)

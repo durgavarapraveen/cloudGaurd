@@ -3,11 +3,8 @@ import uuid
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase
 from uuid6 import uuid7
-
-class Base(DeclarativeBase):
-    pass
+from .Base import Base
 
 class Permission(Base):
 

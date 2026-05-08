@@ -3,11 +3,8 @@ import uuid
 from sqlalchemy import String, Boolean, Table, Column, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase
 from uuid6 import uuid7
-
-class Base(DeclarativeBase):
-    pass
+from .Base import Base
 
 user_roles = Table(
     "user_roles",
@@ -38,7 +35,7 @@ class User(Base):
     )
 
     password: Mapped[str] = mapped_column(
-        String(255),
+        String(1024),
         nullable=False
     )
 
@@ -56,4 +53,8 @@ class User(Base):
         "Role",
         secondary=user_roles,
         back_populates="users"
+    )
+    
+    created_at: Mapped[str] = mapped_column(
+        String
     )
