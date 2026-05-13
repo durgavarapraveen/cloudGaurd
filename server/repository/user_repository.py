@@ -130,3 +130,22 @@ async def edit_user_roles(user_id: str, roles: List[str], db: AsyncSession):
         "email": updated_user.email,
         "roles": [role.name for role in updated_user.roles]  # ✅ uncommented
     }
+    
+def edit_user_info(user_id: str, name: str, email: str, db: AsyncSession):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.username = name
+    user.email = email
+    
+    db.commit()
+    db.refresh(user)
+    return {
+        "message": "User info updated successfully",
+        "user_id": str(user.id),
+        "username": user.username,
+        "email": user.email
+    }
+    
+    

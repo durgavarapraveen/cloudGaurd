@@ -2,6 +2,9 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import repository.user_repository as user_repo
+from schemas.user_schema import CreateUserRequest
+
+from services.auth_service import register_user
 
 async def get_all_users(db: AsyncSession):
     users = await user_repo.get_all_users(db)
@@ -28,3 +31,10 @@ async def delete_user(user_id: str, db: AsyncSession):
 async def edit_user_roles(user_id: str, roles: list[str], db: AsyncSession):
     print(f"Editing roles for user_id: {user_id} with roles: {roles}")
     return await user_repo.edit_user_roles(user_id, roles, db)
+
+async def edit_user_info(user_id: str, name: str, email: str, db: AsyncSession):
+    return await user_repo.edit_user_info(user_id, name, email, db)
+
+async def create_new_user(db: AsyncSession, data: CreateUserRequest):
+    return await register_user(db, data)
+    
