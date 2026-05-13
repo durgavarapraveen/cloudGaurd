@@ -118,6 +118,118 @@ export interface PolicySummary {
   by_file: Record<string, number>;
 }
 
+export interface CreateUserPayload {
+  username: string;
+  email: string;
+  password: string;
+  roles?: string[];
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user_id: string;
+  permissions: string[];
+  message: string;
+}
+
+export interface UserProfile {
+  id?: string;
+  user_id?: string;
+  username: string;
+  email: string;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  roles?: Array<string | { name: string }>;
+  created_at?: string;
+}
+
+function authHeaders() {
+  if (typeof window === "undefined") return {};
+  const token = window.localStorage.getItem("cloudguard_access_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function parseApiError(res: Response, fallback: string) {
+  try {
+    const body = await res.json();
+    return body?.detail ?? body?.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export const authApi = {
+  register: async (
+    payload: CreateUserPayload,
+  ): Promise<{ message: string; user_id: string }> => {
+    const res = await fetch(`${BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Signup failed"));
+    }
+    return res.json();
+  },
+
+  login: async (payload: LoginPayload): Promise<LoginResponse> => {
+    const res = await fetch(`${BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Login failed"));
+    }
+    return res.json();
+  },
+
+  logout: async (userId: string): Promise<{ message: string }> => {
+    const res = await fetch(`${BASE}/auth/logout/${userId}`, {
+      method: "PUT",
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+};
+
+export const usersApi = {
+  create: async (payload: CreateUserPayload): Promise<any> => {
+    const res = await fetch(`${BASE}/users/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "User creation failed"));
+    }
+    return res.json();
+  },
+
+  profile: async (userId: string): Promise<UserProfile> => {
+    const res = await fetch(`${BASE}/users/id/${userId}`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Profile fetch failed"));
+    }
+    return res.json();
+  },
+};
+
 // ─── AWS Validator  /aws/* ─────────────────────────────────────
 
 export const awsApi = {
