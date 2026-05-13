@@ -6,6 +6,7 @@ import ScoreGauge from "@/components/Scoregauge";
 import MetricCard from "@/components/MetricCard";
 import SeverityBar from "@/components/SeverityBadge";
 import FindingsTable from "@/components/FindingsTable";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function DashboardPage() {
   const [data, setData] = useState<ScanResult | null>(null);
@@ -271,6 +272,7 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+      <Toaster />
     </div>
   );
 }

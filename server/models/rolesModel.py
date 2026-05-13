@@ -9,8 +9,18 @@ from .Base import Base
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
-    Column("role_id", UUID(as_uuid=True), ForeignKey("roles.id")),
-    Column("permission_id", UUID(as_uuid=True), ForeignKey("permissions.id"))
+
+    Column(
+        "role_id",
+        UUID(as_uuid=True),
+        ForeignKey("roles.id", ondelete="CASCADE")
+    ),
+
+    Column(
+        "permission_id",
+        UUID(as_uuid=True),
+        ForeignKey("permissions.id", ondelete="CASCADE")
+    )
 )
 
 class Role(Base):

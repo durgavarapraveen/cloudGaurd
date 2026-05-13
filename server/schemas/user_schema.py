@@ -23,3 +23,10 @@ class UserLoginRequest(BaseModel):
     email: EmailStr
 
     password: str = Field(min_length=8)
+    
+class CreateUserByAdmin(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+
+    email: EmailStr
+    
+    roles: list[str] = Field(default_factory=list)

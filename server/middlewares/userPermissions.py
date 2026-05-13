@@ -8,8 +8,6 @@ def require_permission(permission: str):
             "permissions",
             []
         )
-        print(f"User permissions: {permissions}")
-
         if permission not in permissions:
             raise HTTPException(
                 status_code=403,

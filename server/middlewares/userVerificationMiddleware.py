@@ -25,6 +25,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         if request.url.path in EXCLUDED_ROUTES:
             return await call_next(request)
+        
+        # IMPORTANT
+        if request.method == "OPTIONS":
+            return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
 
@@ -49,7 +53,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 "permissions",
                 []
             )
-            print(f"User permissions::::::::::::::::: {request.state.permissions}")
 
         except Exception:
             return JSONResponse(

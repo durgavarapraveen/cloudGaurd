@@ -110,7 +110,10 @@ export default function LoginPage() {
 
           <div className="text-[12px] text-slate-500 text-center pt-2">
             New to CloudGuard?{" "}
-            <Link href="/signup" className="text-emerald-400 hover:text-emerald-300">
+            <Link
+              href="/signup"
+              className="text-emerald-400 hover:text-emerald-300"
+            >
               Create an account
             </Link>
           </div>

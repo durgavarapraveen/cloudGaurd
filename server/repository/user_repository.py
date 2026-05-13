@@ -18,9 +18,14 @@ async def get_user_by_email(db: AsyncSession, email: str):
 
 
 async def create_user(db: AsyncSession, user: User):
+    print(user)
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    
+    # roles also to user
+    
+    
     return user
 
 
