@@ -6,7 +6,7 @@ from typing import List
 from middlewares.userPermissions import require_permission
 from db.postgressDB import get_db
 
-from schemas.user_schema import CreateUserRequest
+from schemas.user_schema import CreateUserByAdmin
 from services.user_service import (
     create_new_user,
     delete_user,
@@ -62,6 +62,7 @@ async def updateUserRoles(
     data: EditRolesRequest,
     db: AsyncSession = Depends(get_db)                       
 ):
+    print(data)
     return await edit_user_roles_service(user_id=user_id, roles=data.roles, db=db)
 
 @router.put("/edit-info/{user_id}",
@@ -77,7 +78,7 @@ async def updateUserInfo(
 
 @router.post("/create", dependencies=[Depends(require_permission("users:create"))])
 async def createUser(
-    data: CreateUserRequest,
+    data: CreateUserByAdmin,
     db: AsyncSession = Depends(get_db)
 ):
     return await create_new_user(db=db, data=data)

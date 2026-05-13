@@ -10,7 +10,7 @@ def create_access_token(
     user_id: str,
     permissions: list[str],
     secret_key: str,
-    expires_in: int = 15
+    expires_in: int = 1500
 ) -> str:
 
     now = datetime.now(timezone.utc)

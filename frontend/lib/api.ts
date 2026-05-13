@@ -1,5 +1,8 @@
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND;
+import toast from "react-hot-toast";
+
 // ─── Types ────────────────────────────────────────────────────
 
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
@@ -121,7 +124,7 @@ export interface PolicySummary {
 export interface CreateUserPayload {
   username: string;
   email: string;
-  password: string;
+  password?: string;
   roles?: string[];
 }
 
@@ -140,7 +143,7 @@ export interface LoginResponse {
 
 export interface UserProfile {
   id?: string;
-  user_id?: string;
+  user_id: string;
   username: string;
   email: string;
   is_active?: boolean;
@@ -149,10 +152,32 @@ export interface UserProfile {
   created_at?: string;
 }
 
-function authHeaders() {
+export interface Roles {
+  role_id: string;
+  name: string;
+  permissions?: Array<string>;
+  is_deleted: boolean;
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+}
+
+export interface Role {
+  role_id: string;
+  name: string;
+  permissions: string[];
+}
+
+function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
   const token = window.localStorage.getItem("cloudguard_access_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 async function parseApiError(res: Response, fallback: string) {
@@ -180,7 +205,7 @@ export const authApi = {
   },
 
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
-    const res = await fetch(`${BASE}/auth/login`, {
+    const res = await fetch(`${BACKEND_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -204,7 +229,7 @@ export const authApi = {
 };
 
 export const usersApi = {
-  create: async (payload: CreateUserPayload): Promise<any> => {
+  create: async (payload: CreateUserPayload): Promise<UserProfile> => {
     const res = await fetch(`${BASE}/users/create`, {
       method: "POST",
       headers: {
@@ -227,6 +252,233 @@ export const usersApi = {
       throw new Error(await parseApiError(res, "Profile fetch failed"));
     }
     return res.json();
+  },
+};
+
+// ---- Users Profile --------------------------------------
+
+export const UsersProfile = {
+  allUsers: async (): Promise<[UserProfile]> => {
+    const res = await fetch(`${BACKEND_URL}/users`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Users Fetch Failed"));
+    }
+    return res.json();
+  },
+
+  allRoles: async (): Promise<[Roles]> => {
+    const res = await fetch(`${BACKEND_URL}/roles`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Failed to fetch all Roles"));
+    }
+    return res.json();
+  },
+
+  editRolesforUser: async (user_id: string, roles: string[]): Promise<any> => {
+    const res = await fetch(`${BACKEND_URL}/users/edit-roles/${user_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        roles,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Failed to Update Roles"));
+    }
+
+    return await res.json();
+  },
+
+  deleteUser: async (user_id: string): Promise<any> => {
+    const res = await fetch(`${BACKEND_URL}/users/delete/${user_id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Delete User");
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+
+    return await res.json();
+  },
+
+  createUserFromAdmin: async ({
+    username,
+    email,
+    roles,
+  }: {
+    username: string;
+    email: string;
+    roles: string[];
+  }) => {
+    const res = await fetch(`${BACKEND_URL}/users/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        username,
+        email,
+        roles,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Delete User");
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+
+    return await res.json();
+  },
+};
+
+//--------------------Roles & Permissions -----------------
+export const RolesPermissions = {
+  allRoles: async (): Promise<Role[]> => {
+    const res = await fetch(`${BACKEND_URL}/roles/`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Fetch Roles");
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+    return res.json();
+  },
+
+  allPermissions: async (): Promise<Permission[]> => {
+    const res = await fetch(`${BACKEND_URL}/permissions/`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const errorMessage = await parseApiError(
+        res,
+        "Failed to Fetch Permissions",
+      );
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+    return res.json();
+  },
+
+  createNewPermission: async ({
+    permission_name,
+  }: {
+    permission_name: string;
+  }) => {
+    const res = await fetch(`${BACKEND_URL}/permissions/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        permission_name,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(
+        res,
+        "Failed to Create Permission",
+      );
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    return await res.json();
+  },
+
+  deletePermission: async (id: string): Promise<any> => {
+    const res = await fetch(`${BACKEND_URL}/permissions/delete/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(
+        res,
+        "Failed to Delete Permission",
+      );
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+
+    return await res.json();
+  },
+
+  createNewRole: async ({
+    name,
+    permissions,
+  }: {
+    name: string;
+    permissions: string[];
+  }) => {
+    const res = await fetch(`${BACKEND_URL}/roles/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        permissions,
+        name,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Create Role");
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    return await res.json();
+  },
+
+  deleteRoles: async (id: string): Promise<any> => {
+    const res = await fetch(`${BACKEND_URL}/roles/delete/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Delete Role");
+
+      toast.error(errorMessage);
+
+      throw new Error(errorMessage);
+    }
+
+    return await res.json();
   },
 };
 

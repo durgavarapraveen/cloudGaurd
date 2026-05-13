@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from os import urandom
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,3 +138,33 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         "refresh_token": new_refresh_token,
         "message": "Token refreshed successfully"
     }
+    
+    
+async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
+    existing_user = await get_user_by_email(db, data.email)
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    
+     # ✅ fetch default role
+    result = await db.execute(select(Role).where(Role.name == "user"))
+    default_role = result.scalar_one_or_none()
+    
+    password = urandom(8)
+    
+    role_result = await db.execute(
+        select(Role).where(Role.name.in_(data.roles))
+    )
+    role_objects = role_result.scalars().all()
+
+    user = User(
+        username=data.username,
+        email=data.email,
+        password=hash_password(password),
+        is_active=True,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        roles = role_objects
+    )
+    
+
+    return await create_user(db, user)

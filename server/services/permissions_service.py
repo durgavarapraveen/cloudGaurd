@@ -25,16 +25,21 @@ async def add_permission(db: AsyncSession, permission_name: str):
     return new_permission
 
 async def delete_permission_by_id(db: AsyncSession, id: str):
-    permission = await db.get(Permission, id)
-    
+    result = await db.execute(
+        select(Permission).where(
+            Permission.id == id
+        )
+    )
+
+    permission = result.scalar_one_or_none()
+
     if not permission:
         raise HTTPException(
             status_code=404,
-            detail="Permission not found"   
+            detail="Permission not found"
         )
-    
+
     await db.delete(permission)
     await db.commit()
-    return {
-        "message": "Permission deleted successfully"
-    }
+
+    return {"message": "Permission deleted"}
