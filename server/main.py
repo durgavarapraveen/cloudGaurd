@@ -23,7 +23,23 @@ app = FastAPI()
 
 print(__file__)
 
-# 1. Routers first
+# 1. Middlewares after
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(AuthMiddleware)
+
+# 2. Routers first
 app.include_router(auth_router)
 app.include_router(aws_router)
 app.include_router(aws_policy_router)
@@ -35,20 +51,6 @@ app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permission_router)
 
-
-# 2. Middlewares after
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.add_middleware(AuthMiddleware)
 
 # 3. Root route
 @app.get("/")

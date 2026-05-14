@@ -2,26 +2,69 @@ services:
   postgres:
     image: postgres:16
     container_name: cloudguard-postgres
-
     restart: unless-stopped
-
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
       POSTGRES_DB: cloudguard
-
     ports:
       - "5433:5432"
-
     volumes:
-      # Persistent database storage
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d cloudguard"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: cloudguard-server
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+asyncpg://admin:admin123@postgres:5432/cloudguard
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-cloudguard-dev-secret}
+      MONGO_URI: ${MONGO_URI:-}
+      DATABASE_NAME: ${DATABASE_NAME:-cloudgaurdscanner}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-south-1}
+    ports:
+      - "8001:8000"
+    volumes:
+      - ../server:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: cloudguard-frontend
+    restart: unless-stopped
+    # work_dir: /app
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_BACKEND_URL: http://127.0.0.1:8001
+      NEXT_PUBLIC_BACKEND: http://127.0.0.1:8001
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend:/apps
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - server
+
 volumes:
   postgres_data:
+  frontend_node_modules:
+  frontend_next:
