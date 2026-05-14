@@ -31,7 +31,9 @@ async def upload_yaml(request: YAMLUploadRequest):
         raise HTTPException(status_code=400, detail=str(e))
     
 
-@router.get("/policies", dependencies=[Depends(require_permission("yaml:policies:read"))])
+@router.get("/policies", 
+            dependencies=[Depends(require_permission("yaml:policies:read"))]
+            )
 async def get_yaml_policies(provider: str = None, service: str = None):
     resources = await get_policies(provider.lower() if provider else None, service)
     return {"resources": resources}
@@ -49,7 +51,7 @@ async def delete_yaml_policy(document_id: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-@router.get("/policy/{document_id}", dependencies=[Depends(require_permission("yaml:policy:read"))])
+@router.get("/policy/{document_id}", dependencies=[Depends(require_permission("yaml:policies:read"))])
 async def get_yaml_policy(document_id: str):
     try:
         policy = await get_policy_by_id(document_id)
@@ -59,7 +61,7 @@ async def get_yaml_policy(document_id: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-@router.put("/policy/{document_id}", dependencies=[Depends(require_permission("yaml:policy:edit"))])
+@router.put("/policy/{document_id}", dependencies=[Depends(require_permission("yaml:policies:edit"))])
 async def edit_yaml_policy(document_id: str, request: YAMLUploadRequest):
     try:
 

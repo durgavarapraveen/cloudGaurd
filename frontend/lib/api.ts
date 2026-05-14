@@ -172,6 +172,7 @@ export interface Role {
 
 function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
+
   const token = window.localStorage.getItem("cloudguard_access_token");
   const headers: Record<string, string> = {};
   if (token) {
@@ -376,10 +377,8 @@ export const RolesPermissions = {
         res,
         "Failed to Fetch Permissions",
       );
-
       toast.error(errorMessage);
-
-      throw new Error(errorMessage);
+      throw Error(errorMessage);
     }
     return res.json();
   },
@@ -500,7 +499,9 @@ export const awsApi = {
       params.severities.forEach((s) =>
         url.searchParams.append("severities", s),
       );
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Scan failed: ${res.statusText}`);
     return res.json();
   },
@@ -509,7 +510,9 @@ export const awsApi = {
   summary: async (regions?: string[]): Promise<{ summary: Summary }> => {
     const url = new URL(`${BASE}/aws/summary`);
     regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Summary failed: ${res.statusText}`);
     return res.json();
   },
@@ -520,7 +523,9 @@ export const awsApi = {
   ): Promise<{ failed_findings: Finding[] }> => {
     const url = new URL(`${BASE}/aws/failed`);
     regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`Failed findings fetch failed: ${res.statusText}`);
     return res.json();
@@ -533,7 +538,9 @@ export const awsApi = {
   ): Promise<{ severity: string; findings: Finding[] }> => {
     const url = new URL(`${BASE}/aws/severity/${severity}`);
     regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Severity filter failed: ${res.statusText}`);
     return res.json();
   },
@@ -545,7 +552,9 @@ export const awsApi = {
   ): Promise<{ service: string; findings: Finding[] }> => {
     const url = new URL(`${BASE}/aws/service/${service}`);
     regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Service filter failed: ${res.statusText}`);
     return res.json();
   },
@@ -556,14 +565,18 @@ export const awsApi = {
 export const awsPoliciesApi = {
   // All rules — maps to GET /aws/policies/
   all: async (): Promise<PoliciesResponse> => {
-    const res = await fetch(`${BASE}/aws/policies/`);
+    const res = await fetch(`${BASE}/aws/policies/`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Policies fetch failed: ${res.statusText}`);
     return res.json();
   },
 
   // Summary — maps to GET /aws/policies/summary
   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-    const res = await fetch(`${BASE}/aws/policies/summary`);
+    const res = await fetch(`${BASE}/aws/policies/summary`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Policy summary failed: ${res.statusText}`);
     return res.json();
   },
@@ -572,7 +585,9 @@ export const awsPoliciesApi = {
   byService: async (
     service: string,
   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-    const res = await fetch(`${BASE}/aws/policies/service/${service}`);
+    const res = await fetch(`${BASE}/aws/policies/service/${service}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`Policy service filter failed: ${res.statusText}`);
     return res.json();
@@ -582,7 +597,9 @@ export const awsPoliciesApi = {
   bySeverity: async (
     severity: string,
   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-    const res = await fetch(`${BASE}/aws/policies/severity/${severity}`);
+    const res = await fetch(`${BASE}/aws/policies/severity/${severity}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`Policy severity filter failed: ${res.statusText}`);
     return res.json();
@@ -601,7 +618,9 @@ export const awsScannerApi = {
     // Convert array to comma-separated string for URL
     const serviceParam = encodeURIComponent(services.join(","));
 
-    const res = await fetch(`${BASE}/aws/scanner/scan/${serviceParam}`);
+    const res = await fetch(`${BASE}/aws/scanner/scan/${serviceParam}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Scanner failed: ${res.statusText}`);
     return res.json();
   },
@@ -613,7 +632,9 @@ export const awsScannerApi = {
     // Convert array to comma-separated string for URL
     const serviceParam = encodeURIComponent(services.join(","));
 
-    const res = await fetch(`${BASE}/aws/scanner/export/${serviceParam}`);
+    const res = await fetch(`${BASE}/aws/scanner/export/${serviceParam}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error(`Scanner failed: ${res.statusText}`);
     const blob = await res.blob();
 
@@ -635,14 +656,18 @@ export const awsScannerApi = {
 
 export const azurePoliciesApi = {
   all: async (): Promise<PoliciesResponse> => {
-    const res = await fetch(`${BASE}/azure/policies/`);
+    const res = await fetch(`${BASE}/azure/policies/`, {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`Azure policies fetch failed: ${res.statusText}`);
     return res.json();
   },
 
   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-    const res = await fetch(`${BASE}/azure/policies/summary`);
+    const res = await fetch(`${BASE}/azure/policies/summary`, {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`Azure policy summary failed: ${res.statusText}`);
     return res.json();
@@ -656,8 +681,9 @@ export const yamlApi = {
     let url = `${BASE}/yaml/policies/`;
     if (details.provider) url = `${BASE}/yaml/policies/${details.provider}`;
 
-    console.log("Fetching policies with URL:", url);
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: authHeaders(),
+    });
     if (!res.ok)
       throw new Error(`YAML policies fetch failed: ${res.statusText}`);
     return res.json();
@@ -670,7 +696,7 @@ export const yamlApi = {
   ): Promise<void> => {
     const res = await fetch(`${BASE}/yaml/upload/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ provider, service, yaml_content: yamlContent }),
     });
     if (!res.ok)
@@ -680,13 +706,16 @@ export const yamlApi = {
   deletePolicy: async (id: string): Promise<void> => {
     const res = await fetch(`${BASE}/yaml/policies/${id}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
     if (!res.ok)
       throw new Error(`YAML policy deletion failed: ${res.statusText}`);
   },
 
   getPolicyById: async (id: string): Promise<any> => {
-    const res = await fetch(`${BASE}/yaml/policy/${id}`);
+    const res = await fetch(`${BASE}/yaml/policy/${id}`, {
+      headers: authHeaders(),
+    });
 
     if (!res.ok)
       throw new Error(`YAML policy fetch by ID failed: ${res.statusText}`);
@@ -701,7 +730,7 @@ export const yamlApi = {
   ): Promise<void> => {
     const res = await fetch(`${BASE}/yaml/policy/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         provider,
         service,

@@ -31,6 +31,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
+        print(f"....................{auth_header}")
 
         if not auth_header:
             return JSONResponse(
