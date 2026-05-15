@@ -28,18 +28,54 @@ const config: Record<Severity, { bg: string; text: string; dot: string }> = {
   },
 };
 
-type Props = {
-  bySeverity: Record<string, number>;
+type BadgeProps = {
+  severity: Severity;
   size?: "xs" | "sm";
 };
 
-export default function SeverityBadge({
-  severity,
-  size = "sm",
-}: {
-  severity: Severity;
-  size?: "xs" | "sm";
-}) {
+type SeverityBarProps = {
+  bySeverity: Partial<Record<Severity, number>>;
+};
+
+export default function SeverityBadge(props: BadgeProps | SeverityBarProps) {
+  if ("bySeverity" in props) {
+    const total = Object.values(props.bySeverity).reduce(
+      (sum, count) => sum + (count ?? 0),
+      0,
+    );
+
+    return (
+      <div className="space-y-2">
+        {(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] as Severity[]).map(
+          (severity) => {
+            const count = props.bySeverity[severity] ?? 0;
+            const c = config[severity];
+            return (
+              <div key={severity} className="flex items-center gap-3">
+                <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+                <span className="w-20 text-[11px] font-mono text-slate-500">
+                  {severity}
+                </span>
+                <div className="flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${c.dot}`}
+                    style={{
+                      width: `${total > 0 ? (count / total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <span className="w-8 text-right text-[11px] font-mono text-slate-400">
+                  {count}
+                </span>
+              </div>
+            );
+          },
+        )}
+      </div>
+    );
+  }
+
+  const { severity, size = "sm" } = props;
   const c = config[severity] ?? config["INFO"];
   return (
     <span

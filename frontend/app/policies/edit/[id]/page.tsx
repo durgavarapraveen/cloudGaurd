@@ -3,11 +3,39 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { yamlApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+
+type YamlScalar = string | number | boolean | null;
+
+interface PolicyRule {
+  id: string;
+  title: string;
+  severity: string;
+  service: string;
+  resource_type: string;
+  description?: string;
+  remediation?: string;
+  cis_reference?: string;
+  check?: {
+    path: string;
+    operator: string;
+    value?: YamlScalar;
+  };
+}
+
+interface PolicyDocument {
+  _id: string;
+  provider: string;
+  service: string;
+  data?: {
+    rules?: PolicyRule[];
+  };
+}
 
 // ── tiny yaml serialiser (no external dep needed for this shape) ──
 // Converts the rules array back to the YAML string the backend expects.
 // Uses js-yaml if available, falls back to JSON-based representation.
-function rulesToYaml(rules: any[]): string {
+function rulesToYaml(rules: PolicyRule[]): string {
   // Build a hand-crafted YAML string that matches your policy file format
   const lines: string[] = ["rules:"];
   for (const rule of rules) {
@@ -98,7 +126,7 @@ export default function EditPolicyPage() {
   const id = typeof params.id === "string" ? params.id : "";
 
   // Raw document from MongoDB
-  const [doc, setDoc] = useState<any | null>(null);
+  const [doc, setDoc] = useState<PolicyDocument | null>(null);
   // YAML string shown in the editor
   const [yaml, setYaml] = useState<string>("");
   // Original YAML — used to detect unsaved changes
@@ -119,15 +147,15 @@ export default function EditPolicyPage() {
       setFetchError(null);
       try {
         const res = await yamlApi.getPolicyById(id);
-        const policy = res.policy;
+        const policy = res.policy as PolicyDocument;
         setDoc(policy);
 
         // Convert stored rules array → YAML string for the editor
         const yamlStr = rulesToYaml(policy.data?.rules ?? []);
         setYaml(yamlStr);
         setOriginal(yamlStr);
-      } catch (err: any) {
-        setFetchError(err.message || "Failed to load policy");
+      } catch (err: unknown) {
+        setFetchError(getErrorMessage(err, "Failed to load policy"));
       } finally {
         setLoading(false);
       }
@@ -150,11 +178,11 @@ export default function EditPolicyPage() {
       setOriginal(yaml);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
-    } catch (err: any) {
-      setSaveError(err.message || "Save failed");
+    } catch (err: unknown) {
+      setSaveError(getErrorMessage(err, "Save failed"));
       setSaveStatus("error");
     }
-  }, [id, yaml, isDirty]);
+  }, [doc?.provider, doc?.service, id, isDirty, yaml]);
 
   // Ctrl+S / Cmd+S shortcut
   useEffect(() => {

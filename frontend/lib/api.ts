@@ -152,6 +152,30 @@ export interface UserProfile {
   created_at?: string;
 }
 
+export interface ScannerResource {
+  resource_id?: string;
+  resource_name?: string;
+  region?: string;
+  [key: string]: unknown;
+}
+
+export interface ScannerResult {
+  resources?: Record<string, ScannerResource[]>;
+  summary?: {
+    total_resources: number;
+    by_service?: Record<string, number>;
+  };
+}
+
+export interface UserRolesResponse {
+  roles: string[];
+}
+
+export interface ApiMessageResponse {
+  message?: string;
+  success?: boolean;
+}
+
 export interface Roles {
   role_id: string;
   name: string;
@@ -279,7 +303,10 @@ export const UsersProfile = {
     return res.json();
   },
 
-  editRolesforUser: async (user_id: string, roles: string[]): Promise<any> => {
+  editRolesforUser: async (
+    user_id: string,
+    roles: string[],
+  ): Promise<UserRolesResponse> => {
     const res = await fetch(`${BACKEND_URL}/users/edit-roles/${user_id}`, {
       method: "PUT",
       headers: {
@@ -298,7 +325,7 @@ export const UsersProfile = {
     return await res.json();
   },
 
-  deleteUser: async (user_id: string): Promise<any> => {
+  deleteUser: async (user_id: string): Promise<ApiMessageResponse> => {
     const res = await fetch(`${BACKEND_URL}/users/delete/${user_id}`, {
       method: "DELETE",
       headers: {
@@ -410,7 +437,7 @@ export const RolesPermissions = {
     return await res.json();
   },
 
-  deletePermission: async (id: string): Promise<any> => {
+  deletePermission: async (id: string): Promise<ApiMessageResponse> => {
     const res = await fetch(`${BACKEND_URL}/permissions/delete/${id}`, {
       method: "DELETE",
       headers: {
@@ -460,7 +487,7 @@ export const RolesPermissions = {
     return await res.json();
   },
 
-  deleteRoles: async (id: string): Promise<any> => {
+  deleteRoles: async (id: string): Promise<ApiMessageResponse> => {
     const res = await fetch(`${BACKEND_URL}/roles/delete/${id}`, {
       method: "DELETE",
       headers: {
@@ -610,7 +637,7 @@ export const awsPoliciesApi = {
 
 export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
-  scan: async ({ services }: { services: string[] }): Promise<any> => {
+  scan: async ({ services }: { services: string[] }): Promise<ScannerResult> => {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
@@ -625,7 +652,7 @@ export const awsScannerApi = {
     return res.json();
   },
 
-  downloadExcel: async ({ services }: { services: string[] }): Promise<any> => {
+  downloadExcel: async ({ services }: { services: string[] }): Promise<Blob> => {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
@@ -712,7 +739,7 @@ export const yamlApi = {
       throw new Error(`YAML policy deletion failed: ${res.statusText}`);
   },
 
-  getPolicyById: async (id: string): Promise<any> => {
+  getPolicyById: async (id: string): Promise<{ policy: unknown }> => {
     const res = await fetch(`${BASE}/yaml/policy/${id}`, {
       headers: authHeaders(),
     });

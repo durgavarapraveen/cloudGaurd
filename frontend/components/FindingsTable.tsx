@@ -22,7 +22,9 @@ export default function FindingsTable({
   const [selected, setSelected] = useState<Finding | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
   const [filterService, setFilterService] = useState<string>("ALL");
-  const [filterStatus, setFilterStatus] = useState<string>("FAIL");
+  const [filterStatus, setFilterStatus] = useState<string>(
+    showPassed ? "ALL" : "FAIL",
+  );
 
   const services = Array.from(new Set(findings.map((f) => f.service))).sort();
   const severities: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];

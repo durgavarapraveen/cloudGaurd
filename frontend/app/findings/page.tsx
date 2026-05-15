@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { awsApi, Finding } from "@/lib/api";
 import FindingsTable from "@/components/FindingsTable";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function FindingsPage() {
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -17,8 +18,8 @@ export default function FindingsPage() {
       const res = await awsApi.scan();
       setFindings(res.findings ?? []);
       setLoaded(true);
-    } catch (e: any) {
-      setError(e.message ?? "Failed to load findings");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to load findings"));
     } finally {
       setLoading(false);
     }

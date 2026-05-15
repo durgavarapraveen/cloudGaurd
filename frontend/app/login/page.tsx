@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { authApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { saveSession } from "@/lib/session";
 
 export default function LoginPage() {
@@ -21,8 +22,8 @@ export default function LoginPage() {
       const session = await authApi.login({ email, password });
       saveSession(session);
       router.push("/profile");
-    } catch (err: any) {
-      setError(err.message ?? "Login failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Login failed"));
     } finally {
       setLoading(false);
     }
