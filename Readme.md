@@ -1,6 +1,6 @@
 # CloudGuard
 
-CloudGuard is a multi-cloud security and resource management dashboard. It helps users connect cloud accounts, discover resources, manage YAML-based security policies, and scan cloud configurations for risks or misconfigurations.
+CloudGuard is a multi-cloud security and resource management dashboard. It helps users connect cloud accounts, discover resources, manage YAML-based security policies, and scan cloud configurations for risks or mis-configurations.
 
 The project is built as a full-stack application:
 
@@ -69,12 +69,12 @@ For the easiest setup, use Docker. Docker runs PostgreSQL, the FastAPI backend, 
 
 ## Important Ports
 
-| Service | URL / Port | Notes |
-| --- | --- | --- |
-| Frontend | `http://localhost:3000` | Next.js app |
-| Backend API | `http://localhost:8001` | FastAPI exposed from Docker |
-| PostgreSQL | `localhost:5433` | Host access to Docker Postgres |
-| PostgreSQL inside Docker | `postgres:5432` | Backend container must use this address |
+| Service                  | URL / Port              | Notes                                   |
+| ------------------------ | ----------------------- | --------------------------------------- |
+| Frontend                 | `http://localhost:3000` | Next.js app                             |
+| Backend API              | `http://localhost:8001` | FastAPI exposed from Docker             |
+| PostgreSQL               | `localhost:5433`        | Host access to Docker Postgres          |
+| PostgreSQL inside Docker | `postgres:5432`         | Backend container must use this address |
 
 Important: inside Docker, the backend should not use `localhost:5433` for PostgreSQL. It must use `postgres:5432`, because `postgres` is the Docker Compose service name.
 
@@ -125,7 +125,7 @@ After startup:
 - The backend root should return:
 
 ```json
-{"message":"Welcome to CloudGuard API!"}
+{ "message": "Welcome to CloudGuard API!" }
 ```
 
 Run in the background:
@@ -230,18 +230,18 @@ http://localhost:3000
 
 ## Main Application Pages
 
-| Page | Purpose |
-| --- | --- |
-| `/login` | User login |
-| `/signup` | User registration |
-| `/` | Security posture dashboard |
-| `/findings` | Scan findings table |
-| `/resources` | Cloud resource discovery and export |
-| `/policies` | YAML policy list |
-| `/policies/create` | Create a new YAML policy |
-| `/policies/edit/[id]` | Edit an existing policy |
-| `/profile` | User management |
-| `/roles` | Role and permission management |
+| Page                  | Purpose                             |
+| --------------------- | ----------------------------------- |
+| `/login`              | User login                          |
+| `/signup`             | User registration                   |
+| `/`                   | Security posture dashboard          |
+| `/findings`           | Scan findings table                 |
+| `/resources`          | Cloud resource discovery and export |
+| `/policies`           | YAML policy list                    |
+| `/policies/create`    | Create a new YAML policy            |
+| `/policies/edit/[id]` | Edit an existing policy             |
+| `/profile`            | User management                     |
+| `/roles`              | Role and permission management      |
 
 ---
 
