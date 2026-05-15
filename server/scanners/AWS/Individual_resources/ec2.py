@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def scan_ec2(session, region):
 
-    logger.info(f"Scanning EC2 in {region}")
+    # logger.info(f"Scanning EC2 in {region}")
 
     client = session.client(
         "ec2",

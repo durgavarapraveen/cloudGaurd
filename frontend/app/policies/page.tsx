@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { yamlApi, Rule } from "@/lib/api";
 import SeverityBadge from "@/components/SeverityBadge";
 import Link from "next/link";
+import { getErrorMessage } from "@/lib/errors";
 
 // ── What the /yaml/policies/ endpoint actually returns ──────────
 interface YamlPolicyResource {
@@ -43,10 +44,9 @@ export default function PoliciesPage() {
           _id: r._id,
         })),
       );
-      console.log("Loaded policies:", allRules);
       setPolicies(allRules);
-    } catch (err: any) {
-      setError(err.message || "Failed to load policies");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load policies"));
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,6 @@ export default function PoliciesPage() {
       visible.reduce<Record<string, Record<string, Rule[]>>>((acc, rule) => {
         const prov = rule.provider ?? "UNKNOWN";
         const svc = rule.service ?? "UNKNOWN";
-        const _id = rule._id;
         if (!acc[prov]) acc[prov] = {};
         if (!acc[prov][svc]) acc[prov][svc] = [];
         acc[prov][svc].push(rule);
@@ -112,8 +111,8 @@ export default function PoliciesPage() {
     try {
       await yamlApi.deletePolicy(id);
       await loadPolicies();
-    } catch (e: any) {
-      alert(e.message || "Failed to delete policy");
+    } catch (e: unknown) {
+      alert(getErrorMessage(e, "Failed to delete policy"));
     }
   };
 

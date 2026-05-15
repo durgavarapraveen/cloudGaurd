@@ -2,6 +2,22 @@
 
 import { useState } from "react";
 import { awsScannerApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+
+interface CloudResource {
+  resource_id?: string;
+  resource_name?: string;
+  region?: string;
+  [key: string]: unknown;
+}
+
+interface ResourceScanResult {
+  resources?: Record<string, CloudResource[]>;
+  summary?: {
+    total_resources: number;
+    by_service?: Record<string, number>;
+  };
+}
 
 const CLOUD_PROVIDERS = {
   AWS: [
@@ -27,11 +43,11 @@ const CLOUD_PROVIDERS = {
 };
 
 export default function ResourcesPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ResourceScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [service, setService] = useState<string>("s3");
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<CloudResource | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
@@ -57,10 +73,10 @@ export default function ResourcesPage() {
 
       // TODO: Add similar API calls for Azure/GCP if selected
 
-      setData(res);
+      setData(res as ResourceScanResult);
       setModalOpen(false);
-    } catch (e: any) {
-      setError(e.message ?? "Failed to fetch resources");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to fetch resources"));
     } finally {
       setLoading(false);
     }
@@ -91,7 +107,7 @@ export default function ResourcesPage() {
     });
   };
 
-  const resources: any[] = data?.resources?.[service] ?? [];
+  const resources: CloudResource[] = data?.resources?.[service] ?? [];
 
   async function downloadExcel() {
     try {
@@ -105,8 +121,8 @@ export default function ResourcesPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (e: any) {
-      setError(e.message ?? "Failed to download Excel");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to download Excel"));
     }
   }
 
@@ -234,7 +250,7 @@ export default function ResourcesPage() {
           </div>
           <div className="w-px h-3 bg-white/[0.08]" />
           {Object.entries(data.summary.by_service ?? {}).map(
-            ([svc, count]: any) => (
+            ([svc, count]) => (
               <button
                 key={svc}
                 onClick={() => {
@@ -261,10 +277,9 @@ export default function ResourcesPage() {
           <div className="text-slate-500 text-[13px]">No resource data</div>
           <div
             className="text-slate-600 text-[12px]"
-            dangerouslySetInnerHTML={{
-              __html: "Click &ldquo;Fetch resources&rdquo; to collect from AWS",
-            }}
-          />
+          >
+            Click &ldquo;Fetch resources&rdquo; to collect from AWS
+          </div>
         </div>
       )}
 
@@ -285,7 +300,7 @@ export default function ResourcesPage() {
               </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
-                {resources.map((r: any, i: number) => (
+                {resources.map((r, i) => (
                   <button
                     key={i}
                     onClick={() => setSelected(r)}

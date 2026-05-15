@@ -6,7 +6,8 @@ import ScoreGauge from "@/components/Scoregauge";
 import MetricCard from "@/components/MetricCard";
 import SeverityBar from "@/components/SeverityBadge";
 import FindingsTable from "@/components/FindingsTable";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function DashboardPage() {
   const [data, setData] = useState<ScanResult | null>(null);
@@ -22,8 +23,8 @@ export default function DashboardPage() {
       console.log("Scan result:", result);
       setData(result);
       setTab("overview");
-    } catch (e: any) {
-      setError(e.message ?? "Scan failed");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Scan failed"));
     } finally {
       setScanning(false);
     }

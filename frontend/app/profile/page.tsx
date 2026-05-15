@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   Shield,
   Users,
@@ -34,7 +33,7 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editRolesOpen, setEditRolesOpen] = useState(false);
   const [createUserOpen, setCreateUserOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUsers() {
@@ -45,7 +44,7 @@ export default function UsersPage() {
       } catch (e) {
         console.error(e);
       } finally {
-        setLoading(true);
+        setLoading(false);
       }
     }
 
@@ -241,6 +240,28 @@ export default function UsersPage() {
               </thead>
 
               <tbody>
+                {loading && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-10 text-center text-sm text-slate-500"
+                    >
+                      Loading users...
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && filteredUsers.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-10 text-center text-sm text-slate-500"
+                    >
+                      No users found
+                    </td>
+                  </tr>
+                )}
+
                 {filteredUsers.map((user) => (
                   <tr
                     key={user.user_id}
@@ -347,7 +368,10 @@ export default function UsersPage() {
 }
 
 function EditRolesModal({ user, onClose, onSave }: EditRolesModalProps) {
-  const [roles, setRoles] = useState<string[]>(user.roles ?? []);
+  const [roles, setRoles] = useState<string[]>(
+    user.roles?.map((role) => (typeof role === "string" ? role : role.name)) ??
+      [],
+  );
 
   const [allRoles, setAllRoles] = useState<Roles[]>([]);
 
@@ -416,7 +440,7 @@ function EditRolesModal({ user, onClose, onSave }: EditRolesModalProps) {
                               key={`${role.role_id}-${idx}`}
                               className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-300 whitespace-nowrap"
                             >
-                              {typeof perm === "object" ? perm.name : perm}
+                              {perm}
                             </span>
                           ))}
                         </div>

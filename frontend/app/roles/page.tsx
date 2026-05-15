@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, ShieldCheck, KeyRound } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import { Role, Permission, RolesPermissions } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function RolesPermissionsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -15,29 +16,25 @@ export default function RolesPermissionsPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchRoles();
-    fetchPermissions();
+    let active = true;
+
+    Promise.all([
+      RolesPermissions.allRoles(),
+      RolesPermissions.allPermissions(),
+    ])
+      .then(([rolesRes, permissionsRes]) => {
+        if (!active) return;
+        setRoles(rolesRes);
+        setPermissions(permissionsRes);
+      })
+      .catch((e: unknown) => {
+        console.error(e);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
-
-  async function fetchRoles() {
-    try {
-      const res = await RolesPermissions.allRoles();
-      console.log(res);
-      setRoles(res);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function fetchPermissions() {
-    try {
-      const res = await RolesPermissions.allPermissions();
-      console.log(res);
-      setPermissions(res);
-    } catch (e) {
-      console.error(e);
-    }
-  }
 
   async function createPermission() {
     if (!newPermission.trim()) return;
@@ -77,8 +74,8 @@ export default function RolesPermissionsPage() {
       setRoles((prev) => prev.filter((r) => r.role_id !== id));
 
       toast.success("Role deleted");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to delete role"));
     }
   }
 
@@ -88,8 +85,8 @@ export default function RolesPermissionsPage() {
       console.log(res);
       setPermissions((prev) => prev.filter((p) => p.id !== id));
       toast.success("Permission deleted");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to delete permission"));
     }
   }
 

@@ -8,6 +8,7 @@ import {
   azureServices,
   googleCloudServices,
 } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 
 // ── Build the provider → services map from your existing api.ts exports ──
 const providerOptions = [
@@ -110,12 +111,6 @@ export default function NewPolicyPage() {
   const availableServices =
     providerOptions.find((p) => p.value === selectedProvider)?.services ?? [];
 
-  // Reset service when provider changes via provider selection handler
-  const handleProviderChange = (provider: string) => {
-    setSelectedProvider(provider);
-    setSelectedService("");
-  };
-
   const lineCount = yaml.split("\n").length;
 
   // ── Validation ────────────────────────────────────────────────
@@ -137,8 +132,8 @@ export default function NewPolicyPage() {
       setSaveStatus("saved");
       // Navigate back to policies list after a short delay
       setTimeout(() => router.push("/policies"), 1200);
-    } catch (err: any) {
-      setSaveError(err.message || "Failed to create policy");
+    } catch (err: unknown) {
+      setSaveError(getErrorMessage(err, "Failed to create policy"));
       setSaveStatus("error");
     }
   }, [canSave, selectedProvider, selectedService, yaml, router]);
@@ -219,7 +214,10 @@ export default function NewPolicyPage() {
           </label>
           <select
             value={selectedProvider}
-            onChange={(e) => setSelectedProvider(e.target.value)}
+            onChange={(e) => {
+              setSelectedProvider(e.target.value);
+              setSelectedService("");
+            }}
             className="bg-[#0d0d14] border border-white/[0.08] text-slate-300 text-[12px] rounded-lg px-3 py-2 font-mono outline-none focus:border-emerald-500/40 transition-colors min-w-[140px]"
           >
             <option value="">Select provider</option>

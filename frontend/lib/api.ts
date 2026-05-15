@@ -1,6 +1,5 @@
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND;
 import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -152,6 +151,30 @@ export interface UserProfile {
   created_at?: string;
 }
 
+export interface ScannerResource {
+  resource_id?: string;
+  resource_name?: string;
+  region?: string;
+  [key: string]: unknown;
+}
+
+export interface ScannerResult {
+  resources?: Record<string, ScannerResource[]>;
+  summary?: {
+    total_resources: number;
+    by_service?: Record<string, number>;
+  };
+}
+
+export interface UserRolesResponse {
+  roles: string[];
+}
+
+export interface ApiMessageResponse {
+  message?: string;
+  success?: boolean;
+}
+
 export interface Roles {
   role_id: string;
   name: string;
@@ -206,7 +229,7 @@ export const authApi = {
   },
 
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
-    const res = await fetch(`${BACKEND_URL}/auth/login`, {
+    const res = await fetch(`${BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -260,7 +283,7 @@ export const usersApi = {
 
 export const UsersProfile = {
   allUsers: async (): Promise<[UserProfile]> => {
-    const res = await fetch(`${BACKEND_URL}/users`, {
+    const res = await fetch(`${BASE}/users`, {
       headers: authHeaders(),
     });
     if (!res.ok) {
@@ -270,7 +293,7 @@ export const UsersProfile = {
   },
 
   allRoles: async (): Promise<[Roles]> => {
-    const res = await fetch(`${BACKEND_URL}/roles`, {
+    const res = await fetch(`${BASE}/roles`, {
       headers: authHeaders(),
     });
     if (!res.ok) {
@@ -279,8 +302,11 @@ export const UsersProfile = {
     return res.json();
   },
 
-  editRolesforUser: async (user_id: string, roles: string[]): Promise<any> => {
-    const res = await fetch(`${BACKEND_URL}/users/edit-roles/${user_id}`, {
+  editRolesforUser: async (
+    user_id: string,
+    roles: string[],
+  ): Promise<UserRolesResponse> => {
+    const res = await fetch(`${BASE}/users/edit-roles/${user_id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -298,8 +324,8 @@ export const UsersProfile = {
     return await res.json();
   },
 
-  deleteUser: async (user_id: string): Promise<any> => {
-    const res = await fetch(`${BACKEND_URL}/users/delete/${user_id}`, {
+  deleteUser: async (user_id: string): Promise<ApiMessageResponse> => {
+    const res = await fetch(`${BASE}/users/delete/${user_id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -327,7 +353,7 @@ export const UsersProfile = {
     email: string;
     roles: string[];
   }) => {
-    const res = await fetch(`${BACKEND_URL}/users/create`, {
+    const res = await fetch(`${BASE}/users/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -355,7 +381,7 @@ export const UsersProfile = {
 //--------------------Roles & Permissions -----------------
 export const RolesPermissions = {
   allRoles: async (): Promise<Role[]> => {
-    const res = await fetch(`${BACKEND_URL}/roles/`, {
+    const res = await fetch(`${BASE}/roles/`, {
       headers: authHeaders(),
     });
     if (!res.ok) {
@@ -369,7 +395,7 @@ export const RolesPermissions = {
   },
 
   allPermissions: async (): Promise<Permission[]> => {
-    const res = await fetch(`${BACKEND_URL}/permissions/`, {
+    const res = await fetch(`${BASE}/permissions/`, {
       headers: authHeaders(),
     });
     if (!res.ok) {
@@ -388,7 +414,7 @@ export const RolesPermissions = {
   }: {
     permission_name: string;
   }) => {
-    const res = await fetch(`${BACKEND_URL}/permissions/create`, {
+    const res = await fetch(`${BASE}/permissions/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -410,8 +436,8 @@ export const RolesPermissions = {
     return await res.json();
   },
 
-  deletePermission: async (id: string): Promise<any> => {
-    const res = await fetch(`${BACKEND_URL}/permissions/delete/${id}`, {
+  deletePermission: async (id: string): Promise<ApiMessageResponse> => {
+    const res = await fetch(`${BASE}/permissions/delete/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -440,7 +466,7 @@ export const RolesPermissions = {
     name: string;
     permissions: string[];
   }) => {
-    const res = await fetch(`${BACKEND_URL}/roles/create`, {
+    const res = await fetch(`${BASE}/roles/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -460,8 +486,8 @@ export const RolesPermissions = {
     return await res.json();
   },
 
-  deleteRoles: async (id: string): Promise<any> => {
-    const res = await fetch(`${BACKEND_URL}/roles/delete/${id}`, {
+  deleteRoles: async (id: string): Promise<ApiMessageResponse> => {
+    const res = await fetch(`${BASE}/roles/delete/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -610,7 +636,11 @@ export const awsPoliciesApi = {
 
 export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
-  scan: async ({ services }: { services: string[] }): Promise<any> => {
+  scan: async ({
+    services,
+  }: {
+    services: string[];
+  }): Promise<ScannerResult> => {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
@@ -625,7 +655,11 @@ export const awsScannerApi = {
     return res.json();
   },
 
-  downloadExcel: async ({ services }: { services: string[] }): Promise<any> => {
+  downloadExcel: async ({
+    services,
+  }: {
+    services: string[];
+  }): Promise<Blob> => {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
@@ -712,7 +746,7 @@ export const yamlApi = {
       throw new Error(`YAML policy deletion failed: ${res.statusText}`);
   },
 
-  getPolicyById: async (id: string): Promise<any> => {
+  getPolicyById: async (id: string): Promise<{ policy: unknown }> => {
     const res = await fetch(`${BASE}/yaml/policy/${id}`, {
       headers: authHeaders(),
     });
