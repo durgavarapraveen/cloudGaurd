@@ -88,6 +88,66 @@ export interface ScanResult {
   };
 }
 
+export interface DashboardScan {
+  id: string;
+  cloud_account_id: string;
+  account_id: string | null;
+  account_name: string | null;
+  provider: string | null;
+  scan_status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  scan_duration_seconds: number | null;
+  regions_scanned: string[];
+  services_scanned: string[];
+  scan_metadata: Record<string, unknown>;
+  total_resources: number;
+  total_checks: number;
+  total_passed: number;
+  total_failed: number;
+  total_warning: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  info_count: number;
+  created_at: string | null;
+}
+
+export interface DashboardScansResponse {
+  success: boolean;
+  count: number;
+  scans: DashboardScan[];
+}
+
+export interface CloudInventoryResource {
+  id: string;
+  cloud_account_id: string | null;
+  provider: string;
+  service: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string | null;
+  arn: string | null;
+  region: string | null;
+  tags: Record<string, unknown>;
+  configuration: Record<string, unknown>;
+  first_seen: string | null;
+  last_seen: string | null;
+}
+
+export interface DashboardScanDetail {
+  success: boolean;
+  scan: DashboardScan;
+  findings: Finding[];
+  inventory: CloudInventoryResource[];
+  inventory_by_service: Record<string, CloudInventoryResource[]>;
+  counts: {
+    findings: number;
+    inventory: number;
+  };
+}
+
 export interface Rule {
   _id: string;
   id: string;
@@ -511,11 +571,14 @@ export const RolesPermissions = {
 
 export const awsApi = {
   // Full scan with optional filters — maps to GET /aws/scan
-  scan: async (params?: {
-    regions?: string[];
-    services?: string[];
-    severities?: string[];
-  }): Promise<ScanResult> => {
+  scan: async (
+    account_uuid?: string,
+    params?: {
+      regions?: string[];
+      services?: string[];
+      severities?: string[];
+    },
+  ): Promise<ScanResult> => {
     const url = new URL(`${BASE}/aws/scan`);
     if (params?.regions)
       params.regions.forEach((r) => url.searchParams.append("regions", r));
@@ -526,10 +589,19 @@ export const awsApi = {
         url.searchParams.append("severities", s),
       );
     const res = await fetch(url.toString(), {
-      headers: authHeaders(),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify(account_uuid ? { account_uuid } : {}),
     });
     if (!res.ok) throw new Error(`Scan failed: ${res.statusText}`);
-    return res.json();
+    const body = await res.json();
+    if (body?.success === false) {
+      throw new Error(body.error ?? "Scan failed");
+    }
+    return body;
   },
 
   // Summary only — maps to GET /aws/summary
@@ -587,6 +659,35 @@ export const awsApi = {
 };
 
 // ─── AWS Policies  /aws/policies/* ────────────────────────────
+
+export const dashboardApi = {
+  recentScans: async (limit = 100): Promise<DashboardScansResponse> => {
+    const url = new URL(`${BASE}/dashboard/recent-scans`);
+    url.searchParams.set("limit", String(limit));
+
+    const res = await fetch(url.toString(), {
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Dashboard scans fetch failed"));
+    }
+
+    return res.json();
+  },
+
+  scanDetails: async (scanId: string): Promise<DashboardScanDetail> => {
+    const res = await fetch(`${BASE}/dashboard/scans/${scanId}`, {
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Scan details fetch failed"));
+    }
+
+    return res.json();
+  },
+};
 
 export const awsPoliciesApi = {
   // All rules — maps to GET /aws/policies/

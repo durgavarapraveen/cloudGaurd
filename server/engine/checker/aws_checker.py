@@ -311,7 +311,7 @@ def _make_finding(resource, rule, status,
 #  BULK RUNNER
 # ──────────────────────────────────────────────
 
-def run_checks(all_resources, all_rules):
+async def run_checks(all_resources, all_rules):
     """
     Runs every applicable rule against every resource.
     Skips SKIP-status findings so the output only contains

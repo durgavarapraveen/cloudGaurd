@@ -45,22 +45,29 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile.dev
+
     container_name: cloudguard-frontend
+
     restart: unless-stopped
-    # work_dir: /app
+
+    working_dir: /app
+
     command: npm run dev
+
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
       NEXT_PUBLIC_BACKEND: ${NEXT_PUBLIC_BACKEND}
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
+
     ports:
       - "3000:3000"
+
     volumes:
       - ../frontend:/app
       - /app/node_modules
-      - /app/.next
+
     depends_on:
       - server
 

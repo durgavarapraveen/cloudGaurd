@@ -24,9 +24,11 @@ from schemas.user_schema import (
 )
 
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 secret_key = os.getenv("JWT_SECRET_KEY")
 
@@ -168,3 +170,4 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
     
 
     return await create_user(db, user)
+

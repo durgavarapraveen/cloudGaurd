@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body, Query, Request
 from typing import List, Optional
 from fastapi import Depends
 from middlewares.userPermissions import require_permission as req
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.postgressDB import get_db
 
 from engine.validator.aws_validator import (
     validate_aws,
@@ -21,14 +23,16 @@ router = APIRouter(
 # FULL SCAN
 # ──────────────────────────────────────────────
 
-@router.get(
+@router.post(
             "/scan",
             dependencies=[
                 Depends(req("aws:scan"))
             ]
         )
 async def scan_aws(
-
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    account_uuid: str | None = Body(default=None, embed=True),
     regions: Optional[List[str]] = Query(default=None),
 
     services: Optional[List[str]] = Query(default=None),
@@ -38,7 +42,9 @@ async def scan_aws(
 ):
 
     return await validate_aws(
-
+        db,
+        account_uuid=account_uuid,
+        user_id=getattr(request.state, "user_id", None),
         regions=regions,
 
         services=services,
