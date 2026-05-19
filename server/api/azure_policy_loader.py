@@ -25,17 +25,11 @@ router = APIRouter(
     ]
 )
 def get_all_policies():
-
     rules = load_policies()
-
     return {
-
         "success":True,
-
         "total":len(rules),
-
         "rules":rules
-
     }
 
 
@@ -50,16 +44,11 @@ def get_all_policies():
     ]
 )
 def policies_summary():
-
     rules = load_policies()
-
     return {
-
         "success":True,
-
         "summary":
             summarise_policies(rules)
-
     }
 
 
@@ -74,22 +63,15 @@ def policies_summary():
     ]
 )
 def policies_by_service(service:str):
-
     rules = load_policies()
-
     filtered = get_rules_for_service(
         rules,
         service
     )
-
     return {
-
         "success":True,
-
         "count":len(filtered),
-
         "rules":filtered
-
     }
 
 
@@ -104,20 +86,13 @@ def policies_by_service(service:str):
     ]
 )
 def policies_by_severity(severity:str):
-
     rules = load_policies()
-
     filtered = get_rules_by_severity(
         rules,
         severity
     )
-
     return {
-
         "success":True,
-
         "count":len(filtered),
-
         "rules":filtered
-
     }

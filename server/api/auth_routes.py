@@ -22,9 +22,7 @@ async def register(
     data: CreateUserRequest,
     db: AsyncSession = Depends(get_db)
 ):
-
     user = await register_user(db, data)
-
     return {
         "message": "User created successfully",
         "user_id": str(user.id)

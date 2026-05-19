@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+
 
 from middlewares.userPermissions import require_permission
 from db.postgressDB import get_db
@@ -21,9 +21,14 @@ router = APIRouter(
     tags=["Permissions"]
 )
 
+@router.get(
+    "",
+    dependencies=[Depends(require_permission("permissions:read"))],
+    include_in_schema=False,
+)
 @router.get("/", 
-            dependencies=[Depends(require_permission("permissions:read"))]
-            )
+    dependencies=[Depends(require_permission("permissions:read"))]
+)
 async def getAllPermissions(db: AsyncSession = Depends(get_db)):
     return await get_all_permissions(db)
 
@@ -37,8 +42,8 @@ async def createPermission(
     return await add_permission(db, permission_name=data.permission_name)
 
 @router.delete("/delete/{id}", 
-               dependencies=[Depends(require_permission("permissions:delete"))]
-               )
+    dependencies=[Depends(require_permission("permissions:delete"))]
+)
 async def deletePermission(
     id: str,
     db: AsyncSession = Depends(get_db)   

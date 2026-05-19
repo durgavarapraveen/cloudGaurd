@@ -40,36 +40,7 @@ async def get_role_by_id(db: AsyncSession, id: str):
     return await roles_repo.get_role_by_id(db, id)
 
 
-async def edit_role_name(db: AsyncSession, role_id: str, new_name: str):
-
-    # ✅ check if role exists
-    result = await db.execute(
-        select(Role).where(Role.id == role_id)
-    )
-    role = result.scalar_one_or_none()
-
-    if not role:
-        raise HTTPException(status_code=404, detail="Role not found")
-
-    # ✅ check if new name is already taken
-    name_check = await db.execute(
-        select(Role).where(Role.name == new_name)
-    )
-    existing = name_check.scalar_one_or_none()
-
-    if existing:
-        raise HTTPException(status_code=400, detail="Role with this name already exists")
-
-    role.name = new_name
-    await db.commit()
-
-    return {
-        "message": "Role name updated successfully",
-        "role_id": str(role.id),
-        "name": role.name
-    }
-
-async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str]):
-    return await roles_repo.edit_role_permissions(db, role_id, permissions)
+async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str], name: str):
+    return await roles_repo.edit_role_permissions(db, role_id, permissions, name)
     
     

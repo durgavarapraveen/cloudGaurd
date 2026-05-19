@@ -18,6 +18,7 @@ function backendSearchUrl(path: string) {
   return new URL(backendUrl(path), origin);
 }
 
+import { permission } from "process";
 import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -344,7 +345,7 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   try {
     res = await fetch(input, requestInit);
   } catch {
-    throw Error(`Could not connect to backend at ${BASE}`);
+    throw new Error(`Could not connect to backend at ${BASE}`);
   }
 
   if (res.status !== 401) {
@@ -443,7 +444,6 @@ export const usersApi = {
 };
 
 // ---- Users Profile --------------------------------------
-
 export const UsersProfile = {
   allUsers: async (): Promise<UserProfile[]> => {
     const res = await apiFetch(`${BASE}/users`);
@@ -477,11 +477,9 @@ export const UsersProfile = {
         roles,
       }),
     });
-
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Failed to Update Roles"));
     }
-
     return await res.json();
   },
 
@@ -493,15 +491,11 @@ export const UsersProfile = {
         ...authHeaders(),
       },
     });
-
     if (!res.ok) {
       const errorMessage = await parseApiError(res, "Failed to Delete User");
-
       toast.error(errorMessage);
-
       throw new Error(errorMessage);
     }
-
     return await res.json();
   },
 
@@ -526,15 +520,11 @@ export const UsersProfile = {
         roles,
       }),
     });
-
     if (!res.ok) {
       const errorMessage = await parseApiError(res, "Failed to Delete User");
-
       toast.error(errorMessage);
-
       throw new Error(errorMessage);
     }
-
     return await res.json();
   },
 };
@@ -547,9 +537,7 @@ export const RolesPermissions = {
     });
     if (!res.ok) {
       const errorMessage = await parseApiError(res, "Failed to Fetch Roles");
-
       toast.error(errorMessage);
-
       throw new Error(errorMessage);
     }
     return res.json();
@@ -611,12 +599,9 @@ export const RolesPermissions = {
         res,
         "Failed to Delete Permission",
       );
-
       toast.error(errorMessage);
-
       throw new Error(errorMessage);
     }
-
     return await res.json();
   },
 
@@ -658,18 +643,41 @@ export const RolesPermissions = {
 
     if (!res.ok) {
       const errorMessage = await parseApiError(res, "Failed to Delete Role");
-
       toast.error(errorMessage);
-
       throw new Error(errorMessage);
     }
+    return await res.json();
+  },
 
+  updateRole: async (
+    id: string,
+    data: {
+      name: string;
+      permissions: string[];
+    },
+  ): Promise<Role> => {
+    const res = await apiFetch(`${BASE}/roles/rolepermissions/id/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        name: data.name,
+        permissions: data.permissions,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, "Failed to Delete Role");
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
+    }
     return await res.json();
   },
 };
 
 // ─── AWS Validator  /aws/* ─────────────────────────────────────
-
 export const awsApi = {
   // Full scan with optional filters — maps to GET /aws/scan
   scan: async (
@@ -760,20 +768,16 @@ export const awsApi = {
 };
 
 // ─── AWS Policies  /aws/policies/* ────────────────────────────
-
 export const dashboardApi = {
   recentScans: async (limit = 100): Promise<DashboardScansResponse> => {
     const url = backendSearchUrl(`/dashboard/recent-scans`);
     url.searchParams.set("limit", String(limit));
-
     const res = await apiFetch(url.toString(), {
       headers: authHeaders(),
     });
-
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Dashboard scans fetch failed"));
     }
-
     return res.json();
   },
 
@@ -781,11 +785,9 @@ export const dashboardApi = {
     const res = await apiFetch(`${BASE}/dashboard/scans/${scanId}`, {
       headers: authHeaders(),
     });
-
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Scan details fetch failed"));
     }
-
     return res.json();
   },
 };
@@ -846,10 +848,8 @@ export const awsScannerApi = {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
-
     // Convert array to comma-separated string for URL
     const serviceParam = encodeURIComponent(services.join(","));
-
     const res = await apiFetch(`${BASE}/aws/scanner/scan/${serviceParam}`, {
       headers: authHeaders(),
     });
@@ -865,25 +865,17 @@ export const awsScannerApi = {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
-    // Convert array to comma-separated string for URL
     const serviceParam = encodeURIComponent(services.join(","));
-
     const res = await apiFetch(`${BASE}/aws/scanner/export/${serviceParam}`, {
       headers: authHeaders(),
     });
     if (!res.ok) throw new Error(`Scanner failed: ${res.statusText}`);
     const blob = await res.blob();
-
     const urls = window.URL.createObjectURL(blob);
-
     const a = document.createElement("a");
-
     a.href = urls;
-
     a.download = "aws_resources.xlsx";
-
     a.click();
-
     return blob;
   },
 
@@ -891,11 +883,9 @@ export const awsScannerApi = {
     const res = await apiFetch(`${BASE}/dashboard/db`, {
       headers: authHeaders(),
     });
-
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Scan details fetch failed"));
     }
-
     return res.json();
   },
 };
@@ -928,7 +918,6 @@ export const yamlApi = {
   getPolicies: async (details: { provider: string | null }): Promise<[]> => {
     let url = `${BASE}/yaml/policies/`;
     if (details.provider) url = `${BASE}/yaml/policies/${details.provider}`;
-
     const res = await apiFetch(url, {
       headers: authHeaders(),
     });
@@ -964,7 +953,6 @@ export const yamlApi = {
     const res = await apiFetch(`${BASE}/yaml/policy/${id}`, {
       headers: authHeaders(),
     });
-
     if (!res.ok)
       throw new Error(`YAML policy fetch by ID failed: ${res.statusText}`);
     return res.json();
@@ -987,5 +975,18 @@ export const yamlApi = {
     });
     if (!res.ok)
       throw new Error(`YAML policy update failed: ${res.statusText}`);
+  },
+};
+
+// ------------ Institutional Accounts ----------------
+export const cloudAccounts = {
+  getAllAccounts: async (): Promise<[]> => {
+    const url = `${BASE}/cloud`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Cloud Accounts fetch failed: ${res.statusText}`);
+    return res.json();
   },
 };

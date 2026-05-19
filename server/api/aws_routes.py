@@ -34,23 +34,17 @@ async def scan_aws(
     db: AsyncSession = Depends(get_db),
     account_uuid: str | None = Body(default=None, embed=True),
     regions: Optional[List[str]] = Query(default=None),
-
     services: Optional[List[str]] = Query(default=None),
-
     severities: Optional[List[str]] = Query(default=None)
 
 ):
-
     return await validate_aws(
         db,
         account_uuid=account_uuid,
         user_id=getattr(request.state, "user_id", None),
         regions=regions,
-
         services=services,
-
         severities=severities
-
     )
 
 
@@ -85,11 +79,8 @@ async def aws_summary(
 async def aws_failed(
     regions: Optional[List[str]] = Query(default=None)
 ):
-
     return await get_failed_findings(
-
         regions=regions
-
     )
 
 
@@ -104,19 +95,12 @@ async def aws_failed(
     ]
 )
 async def severity_filter(
-
     severity: str,
-
     regions: Optional[List[str]] = Query(default=None)
-
 ):
-
     return await get_findings_by_severity(
-
         severity=severity,
-
         regions=regions
-
     )
 
 
@@ -131,21 +115,12 @@ async def severity_filter(
     ]
 )
 async def service_filter(
-
     service: str,
-
     regions: Optional[List[str]] = Query(default=None)
-
 ):
-
     return await get_findings_by_service(
-
         service=service,
-
         regions=regions
-
     )
     
-# ──────────────────────────────────────────────
-# LOAD POLICIES
-# ──────────────────────────────────────────────
+

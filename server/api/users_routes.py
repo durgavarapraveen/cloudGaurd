@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -11,7 +11,7 @@ from services.user_service import (
     create_new_user,
     delete_user,
     edit_user_info,
-    edit_user_roles as edit_user_roles_service,  # ✅ alias to avoid name conflict
+    edit_user_roles as edit_user_roles_service, 
     get_all_users,
     get_all_users_with_roles,
     get_user_by_id,
@@ -36,14 +36,14 @@ async def getUsers(db: AsyncSession = Depends(get_db)):
     return await get_all_users(db)
 
 @router.get("/id/{user_id}",
-            dependencies=[Depends(require_permission("users:read"))]
-            )
+    dependencies=[Depends(require_permission("users:read"))]
+)
 async def getUserByID(user_id: str, db: AsyncSession = Depends(get_db)):
     return await get_user_by_id(user_id=user_id, db=db)
 
 @router.get("/email/{email}", 
-            dependencies=[Depends(require_permission("users:read"))]
-            )
+    dependencies=[Depends(require_permission("users:read"))]
+)
 async def getUserByEmail(email: str, db: AsyncSession = Depends(get_db)):
     return await get_user_by_email(email=email, db=db)
 
@@ -56,19 +56,18 @@ async def deleteUser(user_id: str, db: AsyncSession = Depends(get_db)):
     return await delete_user(user_id=user_id, db=db)
 
 @router.put("/edit-roles/{user_id}",
-            dependencies=[Depends(require_permission("users:write"))]
-            )
+    dependencies=[Depends(require_permission("users:write"))]
+)
 async def updateUserRoles(                                    
     user_id: str,
     data: EditRolesRequest,
     db: AsyncSession = Depends(get_db)                       
 ):
-    print(data)
     return await edit_user_roles_service(user_id=user_id, roles=data.roles, db=db)
 
 @router.put("/edit-info/{user_id}",
-            dependencies=[Depends(require_permission("users:write"))]
-            )
+        dependencies=[Depends(require_permission("users:write"))]
+    )
 async def updateUserInfo(                                    
     user_id: str,
     data: EditUserInfoRequest,

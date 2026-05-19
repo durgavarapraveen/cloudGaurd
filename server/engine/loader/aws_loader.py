@@ -75,7 +75,7 @@ def validate_rule(rule, source_file):
 #  LOADER
 # ──────────────────────────────────────────────
 
-def load_policies(policies_dir=None):
+async def load_policies(policies_dir=None):
     """
     Walks the entire policies/ directory tree, reads every .yaml file,
     validates each rule, and returns a single flat list of valid rule dicts.
