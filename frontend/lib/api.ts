@@ -12,7 +12,9 @@ function backendUrl(path: string) {
 
 function backendSearchUrl(path: string) {
   const origin =
-    typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+    typeof window === "undefined"
+      ? "http://localhost:3000"
+      : window.location.origin;
   return new URL(backendUrl(path), origin);
 }
 
@@ -883,6 +885,18 @@ export const awsScannerApi = {
     a.click();
 
     return blob;
+  },
+
+  fetch_resources_db: async (): Promise<DashboardScanDetail> => {
+    const res = await apiFetch(`${BASE}/dashboard/db`, {
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Scan details fetch failed"));
+    }
+
+    return res.json();
   },
 };
 

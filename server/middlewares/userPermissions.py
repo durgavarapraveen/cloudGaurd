@@ -12,6 +12,8 @@ from services.auth_service import (
 
 from db.postgressDB import get_db
 
+from cache.user_permissions_cache import permissions_cache
+
 
 def require_permission(permission: str):
 
@@ -21,11 +23,15 @@ def require_permission(permission: str):
     ):
 
         user_id = request.state.user_id
-
-        permissions = await get_user_permissions(
-            db,
-            user_id
-        )
+        
+        permissions = []
+        if user_id is not permissions_cache:
+            permissions = await get_user_permissions(
+                                db,
+                                user_id
+                            )
+            
+        permissions = permissions_cache[user_id]
 
         if permission not in permissions:
 

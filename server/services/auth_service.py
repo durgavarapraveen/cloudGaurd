@@ -180,9 +180,6 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
 
 async def get_user_permissions(db: AsyncSession, user_id: str): 
     
-    if user_id in permissions_cache:
-        return permissions_cache[user_id]
-    
     result = await db.execute(
         select(User)
         .where(User.id == user_id)

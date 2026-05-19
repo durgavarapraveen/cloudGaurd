@@ -47,3 +47,16 @@ async def export_aws(service: str):
         regions=None,
         services=service_List if service_List else None
     )
+
+@router.get(
+    "/scan/db/{service}",
+    dependencies=[
+        Depends(require_permission("aws:scanner:scan"))
+    ]
+)
+async def scan_aws_db(service: str):
+    service_List = service.split(",") if service else []
+    return await collect_all(
+        regions=None,
+        services=service_List if service_List else None
+    )

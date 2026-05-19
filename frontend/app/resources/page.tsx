@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   Cloud,
@@ -158,6 +158,15 @@ export default function ResourcesPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const fetch = async () => {
+      const res = await awsScannerApi.fetch_resources_db();
+      console.log(res);
+    };
+
+    fetch();
+  }, []);
 
   const handleServiceToggle = (provider: Provider, svc: string) => {
     if (!CLOUD_PROVIDERS[provider].backendReady) return;
