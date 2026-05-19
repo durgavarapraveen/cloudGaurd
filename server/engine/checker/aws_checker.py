@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class Status(str, Enum):
     PASS  = "PASS"
     FAIL  = "FAIL"
-    ERROR = "ERROR"   # rule could not be evaluated (e.g. path resolution failed)
-    SKIP  = "SKIP"    # resource type does not match this rule
+    ERROR = "ERROR"   
+    SKIP  = "SKIP" 
 
 
 # ──────────────────────────────────────────────

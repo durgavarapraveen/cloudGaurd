@@ -36,7 +36,6 @@ async def validate_aws(
                 )
             ]
         # Load rules
-        # rules = load_policies()
         mongo_docs = await get_policies()
         rules = flatten_mongo_rules(mongo_docs)
 
@@ -259,12 +258,9 @@ async def get_failed_findings(regions=None):
     ]
 
     return {
-
         "success": True,
-
         "total_failed":
             len(failed),
-
         "failures":
             failed
     }
@@ -278,17 +274,13 @@ async def get_findings_by_severity(
         severity,
         regions=None
 ):
-
     results = await validate_aws(
         regions=regions
     )
-
     if not results["success"]:
-
         return results
 
     findings = [
-
         f for f in results.get(
             "findings",
             []
@@ -300,18 +292,14 @@ async def get_findings_by_severity(
         ).lower()
 
         ==
-
         severity.lower()
 
     ]
 
     return {
-
         "success": True,
-
         "count":
             len(findings),
-
         "findings":
             findings
     }
@@ -325,17 +313,13 @@ async def get_findings_by_service(
         service,
         regions=None
 ):
-
     results = await validate_aws(
         regions=regions
     )
-
     if not results["success"]:
-
         return results
 
     findings = [
-
         f for f in results.get(
             "findings",
             []
@@ -344,16 +328,12 @@ async def get_findings_by_service(
         if f.get("service")
         ==
         service
-
     ]
 
     return {
-
         "success": True,
-
         "count":
             len(findings),
-
         "findings":
             findings
     }
@@ -367,30 +347,23 @@ def export_json(
         results,
         path
 ):
-
     try:
-
         with open(
                 path,
                 "w",
                 encoding="utf-8"
         ) as f:
-
             json.dump(
-
                 results,
                 f,
                 indent=2,
                 default=str
-
             )
 
         return True
 
     except Exception as e:
-
         logger.error(e)
-
         return False
 
 
@@ -400,86 +373,54 @@ def export_csv(
 ):
 
     import csv
-
     fields = [
-
         "status",
         "severity",
-
         "rule_id",
         "rule_title",
-
         "service",
-
         "resource_type",
         "resource_id",
-
         "region",
-
         "actual_value",
-
         "operator",
         "expected_value",
-
         "remediation",
-
         "checked_at"
     ]
 
     try:
-
         with open(
-
                 path,
                 "w",
-
                 newline="",
                 encoding="utf-8"
-
         ) as f:
-
             writer = csv.DictWriter(
-
                 f,
-
                 fieldnames=fields,
-
                 extrasaction="ignore"
-
             )
 
             writer.writeheader()
-
             writer.writerows(
                 findings
             )
-
         return True
-
     except Exception as e:
-
         logger.error(e)
-
         return False
     
     
 def flatten_mongo_rules(docs):
-
     rules = []
-
     for doc in docs:
-
         provider = doc.get("provider")
         service = doc.get("service")
-
         yaml_data = doc.get("data", {})
-
         for rule in yaml_data.get("rules", []):
-
             rule["provider"] = provider
             rule["service"] = service
             rule["_source_file"] = f"mongo:{doc['_id']}"
-
             rules.append(rule)
-
     return rules

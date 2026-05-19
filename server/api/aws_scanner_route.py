@@ -25,9 +25,7 @@ router = APIRouter(
     ]
 )
 async def scan_aws(service: str):
-    
     service_List = service.split(",") if service else []
-
     return await collect_all(
         regions=None,
         services=service_List if service_List else None
@@ -40,9 +38,7 @@ async def scan_aws(service: str):
     ]
 )
 async def export_aws(service: str):
-    
     service_List = service.split(",") if service else []
-
     return await export_resources(
         regions=None,
         services=service_List if service_List else None

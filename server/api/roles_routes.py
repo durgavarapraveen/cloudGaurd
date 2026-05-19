@@ -13,7 +13,6 @@ from services.roles_service import (
     get_role_by_id,
     get_role_by_name,
     delete_role,
-    edit_role_name,
     edit_role_permissions,
     create_role
 )
@@ -25,16 +24,22 @@ router = APIRouter(
 
 class RolePermissionUpdateRequest(BaseModel):
     permissions: List[str]
+    name: str
 
+@router.get(
+    "",
+    dependencies=[Depends(require_permission("roles:read"))],
+    include_in_schema=False,
+)
 @router.get("/", 
-            dependencies=[Depends(require_permission("roles:read"))]
-            )  
+    dependencies=[Depends(require_permission("roles:read"))]
+)  
 async def getAllRoles(db: AsyncSession = Depends(get_db)):
     return await get_all_roles(db)
 
 @router.post("/create", 
-            dependencies=[Depends(require_permission("roles:write"))]
-            )
+    dependencies=[Depends(require_permission("roles:write"))]
+)
 async def CreateNewRole(
     role_data: CreateRoleRequest,
     db: AsyncSession = Depends(get_db)   
@@ -56,8 +61,8 @@ async def getRoleByName(
     return await get_role_by_name(db, name)
 
 @router.delete("/delete/{id}", 
-               dependencies=[Depends(require_permission("roles:delete"))]
-               )
+    dependencies=[Depends(require_permission("roles:delete"))]
+)
 async def deleteRole(
     id: str,
     db: AsyncSession = Depends(get_db)   
@@ -65,21 +70,16 @@ async def deleteRole(
     return await delete_role(db, role_id=id)
 
 @router.put("/editrole/id/{id}/name/{name}",
-            dependencies=[Depends(require_permission("roles:write"))]
-            )
-async def editRoleName(
-    id: str,
-    name: str,
-    db: AsyncSession = Depends(get_db)   
-):
-    return await edit_role_name(db, role_id=id, new_name=name)
+    dependencies=[Depends(require_permission("roles:write"))]
+)
+
 
 @router.put("/rolepermissions/id/{id}",
-            dependencies=[Depends(require_permission("roles:write"))]
-            )
+    dependencies=[Depends(require_permission("roles:write"))]
+)
 async def editRolePermissions(
     id: str,
     data: RolePermissionUpdateRequest,
     db: AsyncSession = Depends(get_db)   
 ):
-    return await edit_role_permissions(db, role_id=id, permissions=data.permissions)
+    return await edit_role_permissions(db, role_id=id, permissions=data.permissions, name=data.name)

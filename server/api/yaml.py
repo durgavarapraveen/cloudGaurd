@@ -32,8 +32,8 @@ async def upload_yaml(request: YAMLUploadRequest):
     
 
 @router.get("/policies", 
-            dependencies=[Depends(require_permission("yaml:policies:read"))]
-            )
+    dependencies=[Depends(require_permission("yaml:policies:read"))]
+)
 async def get_yaml_policies(provider: str = None, service: str = None):
     resources = await get_policies(provider.lower() if provider else None, service)
     return {"resources": resources}
@@ -64,14 +64,12 @@ async def get_yaml_policy(document_id: str):
 @router.put("/policy/{document_id}", dependencies=[Depends(require_permission("yaml:policies:edit"))])
 async def edit_yaml_policy(document_id: str, request: YAMLUploadRequest):
     try:
-
         updated_id = await edit_policy_by_id(
             document_id,
             request.provider,
             request.service,
             request.yaml_content
         )
-
         return {
             "message": "Policy updated successfully",
             "id": updated_id

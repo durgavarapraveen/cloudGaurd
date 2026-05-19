@@ -129,24 +129,7 @@ async def get_role_by_id(db: AsyncSession, role_id: str):
     raise HTTPException(status_code=404, detail="Role not found in Database")
 
 
-
-async def edit_role_name(db: AsyncSession, role_id: str, new_name: str):
-    role = await db.get(Role, role_id)
-
-    if not role:
-        raise HTTPException(status_code=404, detail="Role not found")
-
-    role.name = new_name
-    await db.commit()
-
-    return {
-        "message": "Role name updated successfully",
-        "role_id": str(role.id),
-        "name": role.name
-    }
-
-
-async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str]):
+async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str], name:str):
     result = await db.execute(
         select(Role)
         .where(Role.id == role_id)
@@ -159,6 +142,8 @@ async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: lis
 
     permission_objects = await permission_objects_from_names(db, permissions)
     role.permissions = permission_objects
+    
+    role.name = name
 
     await db.commit()
 

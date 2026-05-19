@@ -32,7 +32,6 @@ async def scan():
     ]
 )
 async def summary():
-
     return await get_summary()
 
 
@@ -44,7 +43,6 @@ async def summary():
     ]
 )
 async def failed():
-
     return {
         "failed_findings": await get_failed_findings()
     }
@@ -58,7 +56,6 @@ async def failed():
     ]
 )
 async def by_severity(severity: str):
-
     return {
         "severity": severity,
         "findings": await get_findings_by_severity(severity)
