@@ -1,9 +1,12 @@
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
-from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI", "")
+from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "cloudgaurdscanner")
 
 client = AsyncIOMotorClient(MONGO_URI)

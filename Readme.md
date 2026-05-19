@@ -1,110 +1,177 @@
-# ☁️ Cloud Guard
+# CloudGuard
 
-Cloud Guard is a multi-cloud security and resource management platform that helps users integrate and monitor cloud providers such as AWS, Azure, and GCP from a single dashboard.
+CloudGuard is a multi-cloud security and resource management dashboard. It helps users connect cloud accounts, discover resources, manage YAML-based security policies, and scan cloud configurations for risks or mis-configurations.
 
-Users can discover cloud resources, write YAML-based security policies, and scan cloud configurations for potential security risks and misconfigurations.
+The project is built as a full-stack application:
 
----
-
-## 🚀 Features
-
-- 🔗 Multi-cloud integration
-  - AWS
-  - Azure
-  - GCP
-
-- 📦 Cloud resource discovery
-
-- 🛡️ YAML-based policy validation
-
-- 🔍 Security misconfiguration scanning
-
-- ⚡ Real-time resource monitoring
-
-- 👤 Authentication & authorization
-
-- 🐳 Dockerized development environment
+- Frontend: Next.js, React, TypeScript, Tailwind CSS
+- Backend: FastAPI, SQLAlchemy, PostgreSQL, MongoDB
+- Cloud integrations: AWS now, with Azure and GCP structure included
+- DevOps: Docker and Docker Compose for local development
 
 ---
 
-## 🛠️ Tech Stack
+## What You Can Do
 
-### Frontend
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-
-### Backend
-
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- MongoDB
-
-### DevOps
-
-- Docker
-- Docker Compose
+- Sign in and use protected dashboard pages.
+- Manage users, roles, and permissions.
+- Discover cloud resources such as AWS services.
+- View resource details and export resource data.
+- Create, edit, delete, and view YAML security policies.
+- Run security scans and inspect findings by severity, service, and status.
+- Use Docker Compose to run frontend, backend, and PostgreSQL together.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
-```bash
-cloudguard/
-│
-├── frontend/        # Next.js frontend
-├── server/          # FastAPI backend
-├── infra/           # Docker Compose & infrastructure configs
-│
-└── README.md
+```text
+cloudGaurd/
+  frontend/                 Next.js frontend application
+    app/                    App Router pages
+    components/             Shared React components
+    lib/                    API clients, session helpers, shared utilities
+    public/                 Static assets
+
+  server/                   FastAPI backend application
+    api/                    API route modules
+    auth/                   Authentication logic
+    db/                     Database connection setup
+    models/                 SQLAlchemy models
+    schemas/                Pydantic schemas
+    services/               Business logic
+    scanners/               Cloud scanner logic
+    policies/               Policy-related files
+
+  infra/
+    docker-compose.yml      Local Docker Compose setup
+    .env                    Compose environment variables
+
+  Readme.md                 Project documentation
 ```
 
 ---
 
-# ⚙️ Installation
+## Prerequisites
 
-## 1️⃣ Clone Repository
+Install these before running the project:
 
-```bash
-git clone <your-repository-url>
-cd cloudguard
-```
+- Git
+- Docker Desktop
+- Node.js 20 or newer, only needed for local frontend development
+- Python 3.11 or newer, only needed for local backend development
+- A MongoDB connection string
+- AWS credentials if you want AWS scanning to work
+
+For the easiest setup, use Docker. Docker runs PostgreSQL, the FastAPI backend, and the Next.js frontend together.
 
 ---
 
-## 2️⃣ Run with Docker
+## Important Ports
+
+| Service                  | URL / Port              | Notes                                   |
+| ------------------------ | ----------------------- | --------------------------------------- |
+| Frontend                 | `http://localhost:3000` | Next.js app                             |
+| Backend API              | `http://localhost:8001` | FastAPI exposed from Docker             |
+| PostgreSQL               | `localhost:5433`        | Host access to Docker Postgres          |
+| PostgreSQL inside Docker | `postgres:5432`         | Backend container must use this address |
+
+Important: inside Docker, the backend should not use `localhost:5433` for PostgreSQL. It must use `postgres:5432`, because `postgres` is the Docker Compose service name.
+
+---
+
+## Environment Variables
+
+The Docker setup reads variables from `infra/.env`.
+
+Create or update `infra/.env` with values like this:
+
+```env
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/<database>
+DATABASE_NAME=cloudgaurdscanner
+
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin123
+POSTGRES_DB=cloudguard
+DATABASE_URL=postgresql+asyncpg://admin:admin123@postgres:5432/cloudguard
+
+JWT_SECRET_KEY=replace-with-a-long-random-secret
+JWT_EXPIRES_IN=7d
+
+AWS_REGION=ap-south-1
+AWS_ACCESS_KEY_ID=replace-with-your-access-key
+AWS_SECRET_ACCESS_KEY=replace-with-your-secret-key
+
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+NEXT_PUBLIC_BACKEND=http://127.0.0.1:8001
+```
+
+Do not commit real AWS keys, MongoDB passwords, or JWT secrets. Use placeholder values in shared documentation and keep real secrets only in local `.env` files.
+
+---
+
+## Run With Docker
+
+From the project root:
 
 ```bash
 docker compose -f infra/docker-compose.yml up --build
 ```
 
+After startup:
+
+- Open the frontend at `http://localhost:3000`
+- Check the backend at `http://localhost:8001`
+- The backend root should return:
+
+```json
+{ "message": "Welcome to CloudGuard API!" }
+```
+
+Run in the background:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build
+```
+
+Stop containers:
+
+```bash
+docker compose -f infra/docker-compose.yml down
+```
+
+View logs:
+
+```bash
+docker compose -f infra/docker-compose.yml logs -f
+```
+
+View only backend logs:
+
+```bash
+docker compose -f infra/docker-compose.yml logs -f server
+```
+
 ---
 
-# 🔧 Backend Setup
+## Local Backend Setup
 
-Navigate to backend directory:
+Use this only if you want to run the backend outside Docker.
 
 ```bash
 cd server
-```
-
-Create virtual environment:
-
-```bash
 python -m venv venv
 ```
 
-Activate virtual environment:
+Activate the virtual environment.
 
-### Windows
+Windows PowerShell:
 
 ```powershell
-.\venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 ```
 
-### Linux/macOS
+Linux/macOS:
 
 ```bash
 source venv/bin/activate
@@ -116,83 +183,254 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Run backend server:
+For local backend development, your database URL should point to the host PostgreSQL port:
+
+```env
+DATABASE_URL=postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard
+```
+
+Run the backend:
 
 ```bash
 uvicorn main:app --reload
 ```
 
+Local backend URL:
+
+```text
+http://localhost:8000
+```
+
 ---
 
-# 💻 Frontend Setup
+## Local Frontend Setup
 
-Navigate to frontend directory:
+Use this only if you want to run the frontend outside Docker.
 
 ```bash
 cd frontend
-```
-
-Install dependencies:
-
-```bash
 npm install
-```
-
-Run frontend server:
-
-```bash
 npm run dev
 ```
 
----
-
-# 🌍 Environment Variables
-
-Create `.env` file inside the `server/` directory:
+For local frontend development, `frontend/.env.local` should point to the local backend:
 
 ```env
-DATABASE_URL=
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
-JWT_SECRET_KEY=
-JWT_EXPIRES_IN=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=
-MONGO_URI=
-NEXT_PUBLIC_BACKEND_URL
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND=http://127.0.0.1:8000
+```
+
+Frontend URL:
+
+```text
+http://localhost:3000
 ```
 
 ---
 
-# 🐳 Docker Services
+## Main Application Pages
 
-The project includes:
-
-- Frontend Container
-- FastAPI Backend Container
-- PostgreSQL Database Container
-
----
-
-# 📌 Future Improvements
-
-- Kubernetes deployment
-- RBAC support
-- Cloud compliance reports
-- Terraform integration
-- CI/CD pipelines
-- AI-powered recommendations
+| Page                  | Purpose                             |
+| --------------------- | ----------------------------------- |
+| `/login`              | User login                          |
+| `/signup`             | User registration                   |
+| `/`                   | Security posture dashboard          |
+| `/findings`           | Scan findings table                 |
+| `/resources`          | Cloud resource discovery and export |
+| `/policies`           | YAML policy list                    |
+| `/policies/create`    | Create a new YAML policy            |
+| `/policies/edit/[id]` | Edit an existing policy             |
+| `/profile`            | User management                     |
+| `/roles`              | Role and permission management      |
 
 ---
 
-# 📄 License
+## Backend Responsibilities
 
-This project is licensed under the MIT License.
+The FastAPI backend handles:
+
+- Authentication and JWT verification
+- User, role, and permission APIs
+- PostgreSQL persistence for identity and RBAC data
+- MongoDB-backed policy storage
+- AWS scanner and checker routes
+- YAML policy upload, listing, editing, and deletion
+- Database table creation during application startup
+
+The backend starts from:
+
+```text
+server/main.py
+```
 
 ---
 
-# 👨‍💻 Author
+## Policy Format
 
-**Praveen Geda**
+Policies are YAML documents with a `rules` list. A simple example:
+
+```yaml
+rules:
+  - id: "CUSTOM-01"
+    title: "S3 bucket should not be public"
+    severity: HIGH
+    service: s3
+    resource_type: s3_bucket
+    description: >
+      Checks whether an S3 bucket is publicly accessible.
+    check:
+      path: public_access
+      operator: equals
+      value: false
+    remediation: "Disable public access on the bucket."
+```
+
+Each rule usually includes:
+
+- `id`: Unique rule identifier
+- `title`: Human-readable rule name
+- `severity`: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO`
+- `service`: Cloud service name
+- `resource_type`: Type of resource being checked
+- `description`: What the rule checks
+- `check`: Path, operator, and optional expected value
+- `remediation`: Suggested fix
+
+---
+
+## Useful Development Commands
+
+Frontend lint:
+
+```bash
+cd frontend
+npm run lint
+```
+
+Frontend type check:
+
+```bash
+cd frontend
+npx tsc --noEmit
+```
+
+Run frontend commands inside Docker:
+
+```bash
+docker compose -f infra/docker-compose.yml exec frontend npm run lint
+```
+
+Rebuild only the frontend service:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build frontend
+```
+
+Rebuild only the backend service:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build server
+```
+
+---
+
+## Troubleshooting
+
+### Backend cannot connect to PostgreSQL
+
+If Docker logs show `Database connection failed` or `Connection refused`, check `DATABASE_URL`.
+
+For Docker:
+
+```env
+DATABASE_URL=postgresql+asyncpg://admin:admin123@postgres:5432/cloudguard
+```
+
+For local backend:
+
+```env
+DATABASE_URL=postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard
+```
+
+### Frontend cannot call the backend
+
+Check these values:
+
+Docker frontend:
+
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+NEXT_PUBLIC_BACKEND=http://127.0.0.1:8001
+```
+
+Local frontend with local backend:
+
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND=http://127.0.0.1:8000
+```
+
+### Docker says old containers are orphans
+
+You may see a warning about orphan containers if services were renamed or removed. You can clean them up with:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --remove-orphans
+```
+
+### PowerShell blocks npm scripts
+
+If PowerShell blocks `npm.ps1`, use:
+
+```powershell
+npm.cmd run lint
+npm.cmd run dev
+```
+
+Or run commands inside Docker.
+
+### AWS scanning returns errors
+
+Check:
+
+- AWS access key and secret are present.
+- AWS region is correct.
+- The IAM user or role has permission to read the selected services.
+- The backend container has the updated environment variables.
+
+---
+
+## Security Notes
+
+- Never commit real credentials.
+- Rotate any credential that was accidentally committed.
+- Use least-privilege AWS IAM permissions for scanning.
+- Use a strong `JWT_SECRET_KEY`.
+- Avoid printing bearer tokens, passwords, or cloud secrets in logs.
+
+---
+
+## Current Limitations
+
+- AWS support is the most complete cloud integration.
+- Azure and GCP entries exist in the UI/structure, but may need additional backend scanner implementation.
+- Docker Compose is intended for local development, not production deployment.
+- Production deployments should use managed secrets, HTTPS, persistent databases, and stricter CORS settings.
+
+---
+
+## Future Improvements
+
+- Kubernetes deployment manifests
+- CI/CD pipeline
+- More complete Azure and GCP scanning
+- Cloud compliance report generation
+- Terraform or IaC integration
+- AI-assisted remediation suggestions
+- Improved audit logging
+
+---
+
+## Author
+
+Praveen Geda

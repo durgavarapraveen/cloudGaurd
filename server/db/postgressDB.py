@@ -3,14 +3,16 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker
 )
-from dotenv import load_dotenv
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from models.Base import Base
 from models.userModel import User
 from models.rolesModel import Role
 from models.permission import Permission
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard")
 

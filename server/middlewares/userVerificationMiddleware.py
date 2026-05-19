@@ -4,14 +4,16 @@ from fastapi.responses import JSONResponse
 import jwt
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 SECRET = os.getenv("JWT_SECRET_KEY", "")    
 
 EXCLUDED_ROUTES = [
     "/auth/register",
     "/auth/login",
+    "/auth/refresh-token",
     "/docs",
     "/redoc",
     "/openapi.json",
@@ -46,6 +48,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 SECRET,
                 algorithms=["HS256"]
             )
+
+            if payload.get("type") != "access":
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Please Login Again"}
+                )
 
             request.state.user_id = payload["sub"]
 

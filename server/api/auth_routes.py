@@ -7,7 +7,8 @@ from services.auth_service import (register_user, login_user, delete_user, logou
 
 from schemas.user_schema import (
     CreateUserRequest,
-    UserLoginRequest
+    UserLoginRequest,
+    RefreshTokenRequest
 )
 from middlewares.userPermissions import require_permission
 
@@ -50,9 +51,9 @@ async def deleteUser(
 ):
     return await delete_user(db, user_id)
 
-@router.post("/refresh-token/{user_id}")
+@router.post("/refresh-token")
 async def refresh_token(
-    user_id: str,
+    data: RefreshTokenRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    return await refresh_user_token(db, user_id)
+    return await refresh_user_token(data.refresh_token, db)

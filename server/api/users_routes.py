@@ -30,6 +30,7 @@ class EditUserInfoRequest(BaseModel):
     name: str
     email: str
 
+@router.get("")
 @router.get("/")
 async def getUsers(db: AsyncSession = Depends(get_db)):
     return await get_all_users(db)

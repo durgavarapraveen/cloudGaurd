@@ -10,6 +10,7 @@ from api.auth_routes import router as auth_router
 from api.users_routes import router as user_router
 from api.roles_routes import router as role_router
 from api.permission_route import router as permission_router
+from api.dashboard_routes import router as dashboard_router
 from db.postgressDB import engine
 from middlewares.userVerificationMiddleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,10 @@ from models.Base import Base
 from models.userModel import User
 from models.rolesModel import Role
 from models.permission import Permission
+from models.accounts_model import Accounts
+from models.scans_model import Scans
+from models.findings import Findings
+from models.resources_model import Resources
 
 app = FastAPI()
 
@@ -50,6 +55,7 @@ app.include_router(yaml_router)
 app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permission_router)
+app.include_router(dashboard_router)
 
 
 # 3. Root route

@@ -1,16 +1,26 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  turbopack: {},
+  async rewrites() {
+    return [
+      {
+        source: "/backend/:path*",
+        destination: `${process.env.BACKEND_INTERNAL_URL || "http://server:8000"}/:path*`,
+      },
+    ];
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...(config.watchOptions ?? {}),
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
 
-// const nextConfig: NextConfig = {
-//   webpackDevMiddleware: (config) => {
-//     config.watchOptions = {
-//       poll: 1000,
-//       aggregateTimeout: 300,
-//     };
-
-//     return config;
-//   },
-// };
+    return config;
+  },
+};
 
 export default nextConfig;

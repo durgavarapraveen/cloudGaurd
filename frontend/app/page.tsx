@@ -1,27 +1,59 @@
 "use client";
 
-import { useState } from "react";
-import { awsApi, ScanResult } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  awsApi,
+  dashboardApi,
+  DashboardScan,
+  DashboardScanDetail,
+  ScanResult,
+} from "@/lib/api";
 import ScoreGauge from "@/components/Scoregauge";
 import MetricCard from "@/components/MetricCard";
 import SeverityBar from "@/components/SeverityBadge";
 import FindingsTable from "@/components/FindingsTable";
 import { Toaster } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/errors";
+import { ScanHistory } from "@/components/ScanHistory";
+import { Meta } from "@/components/Meta";
+import { ScanDetailPanel } from "@/components/ScanDetailPanel";
 
 export default function DashboardPage() {
   const [data, setData] = useState<ScanResult | null>(null);
+  const [scanHistory, setScanHistory] = useState<DashboardScan[]>([]);
+  const [selectedScan, setSelectedScan] = useState<DashboardScanDetail | null>(
+    null,
+  );
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "findings">("overview");
+
+  const loadScanHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const result = await dashboardApi.recentScans(100);
+      setScanHistory(result.scans ?? []);
+      console.log(result);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to load scan history"));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadScanHistory();
+  }, [loadScanHistory]);
 
   async function runScan() {
     setScanning(true);
     setError(null);
     try {
       const result = await awsApi.scan();
-      console.log("Scan result:", result);
       setData(result);
+      await loadScanHistory();
       setTab("overview");
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Scan failed"));
@@ -30,7 +62,22 @@ export default function DashboardPage() {
     }
   }
 
+  async function openScanDetails(scanId: string) {
+    setDetailsLoading(true);
+    setError(null);
+    try {
+      const result = await dashboardApi.scanDetails(scanId);
+      setSelectedScan(result);
+      console.log(result);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to load scan details"));
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
   const s = data?.summary;
+  const latestScan = scanHistory[0];
 
   return (
     <div className="p-8 space-y-8 relative z-10">
@@ -42,7 +89,9 @@ export default function DashboardPage() {
           </h1>
           <p className="text-[13px] text-slate-500 mt-1">
             AWS account scan —{" "}
-            {data?.scan_metadata?.account_id ?? "not scanned yet"}
+            {data?.scan_metadata?.account_id ??
+              latestScan?.account_id ??
+              "not scanned yet"}
           </p>
         </div>
 
@@ -93,7 +142,7 @@ export default function DashboardPage() {
       )}
 
       {/* Empty state */}
-      {!data && !scanning && (
+      {!data && !scanning && !historyLoading && scanHistory.length === 0 && (
         <div className="fade-up flex flex-col items-center justify-center py-24 text-center space-y-4 border border-dashed border-white/[0.08] rounded-2xl">
           <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -120,6 +169,22 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      <ScanHistory
+        scans={scanHistory}
+        loading={historyLoading}
+        selectedScanId={selectedScan?.scan.id}
+        onRefresh={loadScanHistory}
+        onOpen={openScanDetails}
+      />
+
+      {(selectedScan || detailsLoading) && (
+        <ScanDetailPanel
+          detail={selectedScan}
+          loading={detailsLoading}
+          onClose={() => setSelectedScan(null)}
+        />
       )}
 
       {/* Scanning skeleton */}
@@ -274,17 +339,6 @@ export default function DashboardPage() {
         </div>
       )}
       <Toaster />
-    </div>
-  );
-}
-
-function Meta({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <div className="text-slate-600 uppercase tracking-wider text-[10px] mb-1">
-        {label}
-      </div>
-      <div className="text-slate-400 font-mono">{value ?? "—"}</div>
     </div>
   );
 }

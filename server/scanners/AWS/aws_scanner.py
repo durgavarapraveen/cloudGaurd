@@ -1,6 +1,7 @@
 import boto3
 import os
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
@@ -35,7 +36,7 @@ from scanners.AWS.Individual_resources.transitGateway import scan_transit_gatewa
 from utils.aws_session import get_session
 
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ services_all = ["s3", "iam", "ec2", "rds", "acm", "efs", "ebs", "ram", "privatel
 # MAIN COLLECTOR
 # ─────────────────────────────────────────────
 
-def collect_all(regions=None, services=None):
+async def collect_all(regions=None, services=None):
     """
     Collect AWS resources for requested services.
 
@@ -179,6 +180,7 @@ def collect_all(regions=None, services=None):
     total = sum(by_service.values())
 
     result = {
+        "account_id": account_id,
         "scan_metadata": {
             "account_id": account_id,
             "regions": regions,
@@ -224,7 +226,7 @@ def flatten_record(record: dict) -> dict:
 
 async def export_resources(regions=None, services=None):
  
-    result = collect_all(regions, services)
+    result = await collect_all(regions, services)
  
     resources = result["resources"]
     summary   = result["summary"]

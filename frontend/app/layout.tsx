@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
-
-const mono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
 
 export const metadata: Metadata = {
   title: "CloudGuard",
@@ -19,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={mono.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className="bg-[#0a0a0f] text-slate-200 antialiased min-h-screen flex"
         suppressHydrationWarning
