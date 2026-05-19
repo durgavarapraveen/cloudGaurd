@@ -27,7 +27,7 @@ class RolePermissionUpdateRequest(BaseModel):
     permissions: List[str]
 
 @router.get("/", 
-            # dependencies=[Depends(require_permission("roles:read"))]
+            dependencies=[Depends(require_permission("roles:read"))]
             )  
 async def getAllRoles(db: AsyncSession = Depends(get_db)):
     return await get_all_roles(db)

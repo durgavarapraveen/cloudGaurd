@@ -28,6 +28,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from cache.user_permissions_cache import permissions_cache
+
+
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 secret_key = os.getenv("JWT_SECRET_KEY")
@@ -109,9 +112,10 @@ async def logout_user(db: AsyncSession, user_id: str):  # ✅ fixed arg order
 
 
 async def refresh_user_token(refresh_token: str, db: AsyncSession):
-    
-    #check refresh token validity here (not implemented in this snippet)
-    user_id = checkRefreshTokenValidity(refresh_token, secret_key)
+    try:
+        user_id = checkRefreshTokenValidity(refresh_token, secret_key)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
     
     
     user = await db.execute(
@@ -124,7 +128,7 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
     
     users = user.scalar_one_or_none()
     
-    if not user:
+    if not users:
         raise HTTPException(status_code=404, detail="User not found")
     
     permissions = []
@@ -133,11 +137,13 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         for perm in role.permissions:
             permissions.append(perm.name)
 
-    new_access_token = create_access_token(str(user.id), permissions, secret_key)
-    new_refresh_token = create_refresh_token(str(user.id), secret_key)
+    new_access_token = create_access_token(str(users.id), permissions, secret_key)
+    new_refresh_token = create_refresh_token(str(users.id), secret_key)
     return {
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
+        "user_id": str(users.id),
+        "permissions": permissions,
         "message": "Token refreshed successfully"
     }
     
@@ -170,4 +176,31 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
     
 
     return await create_user(db, user)
+
+
+async def get_user_permissions(db: AsyncSession, user_id: str): 
+    
+    if user_id in permissions_cache:
+        return permissions_cache[user_id]
+    
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.roles).selectinload(Role.permissions))
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        return []
+    
+    permissions = set()
+    for role in user.roles:
+        for perm in role.permissions:
+            permissions.add(perm.name)
+            
+    permissions_list = list(permissions)
+    
+    permissions_cache[user_id] = permissions_list
+
+    return permissions_list
 

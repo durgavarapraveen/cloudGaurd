@@ -14,6 +14,9 @@
 
 body {
   background: #0a0a0f;
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
+    monospace;
 }
 
 /* Subtle scan-line texture on the background */

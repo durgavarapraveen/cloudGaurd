@@ -27,7 +27,9 @@ router = APIRouter(
 async def getAllPermissions(db: AsyncSession = Depends(get_db)):
     return await get_all_permissions(db)
 
-@router.post("/create")
+@router.post("/create",
+            #  dependencies=[Depends(require_permission("permissions:write"))]    
+            )
 async def createPermission(
     data: CreatePermissionRequest,
     db: AsyncSession = Depends(get_db)

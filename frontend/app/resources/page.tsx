@@ -159,28 +159,6 @@ export default function ResourcesPage() {
     }
   }
 
-  const handleProviderToggle = (provider: Provider) => {
-    if (!CLOUD_PROVIDERS[provider].backendReady) return;
-
-    setSelectedProviders((prev) => {
-      if (prev.includes(provider)) {
-        return prev.filter((item) => item !== provider);
-      }
-
-      return [...prev, provider];
-    });
-
-    setSelectedServices((prev) => {
-      if (selectedProviders.includes(provider)) {
-        const copy = { ...prev };
-        delete copy[provider];
-        return copy;
-      }
-
-      return { ...prev, [provider]: prev[provider] ?? [] };
-    });
-  };
-
   const handleServiceToggle = (provider: Provider, svc: string) => {
     if (!CLOUD_PROVIDERS[provider].backendReady) return;
 

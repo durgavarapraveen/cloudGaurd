@@ -226,7 +226,7 @@ def flatten_record(record: dict) -> dict:
 
 async def export_resources(regions=None, services=None):
  
-    result = collect_all(regions, services)
+    result = await collect_all(regions, services)
  
     resources = result["resources"]
     summary   = result["summary"]
