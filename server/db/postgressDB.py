@@ -12,9 +12,13 @@ from models.userModel import User
 from models.rolesModel import Role
 from models.permission import Permission
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+ROOT_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT_DIR / "server" / ".env")
+load_dotenv(ROOT_DIR / "infra" / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard")
+if "@postgres:5432" in DATABASE_URL and not Path("/.dockerenv").exists():
+    DATABASE_URL = DATABASE_URL.replace("@postgres:5432", "@localhost:5433")
 
 engine = create_async_engine(
     DATABASE_URL,

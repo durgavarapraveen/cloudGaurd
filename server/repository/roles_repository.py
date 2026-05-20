@@ -18,7 +18,7 @@ async def get_all_roles(db: AsyncSession):
         {
             "role_id": str(role.id),
             "name": role.name,
-            "is_active": role.is_active,
+            "is_active": not role.is_deleted,
             "is_deleted": role.is_deleted,
             "permissions": [p.name for p in role.permissions]
         }

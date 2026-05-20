@@ -53,4 +53,3 @@ class Role(Base):
         Boolean,
         default=False
     )
-    

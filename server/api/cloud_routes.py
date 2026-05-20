@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
 from middlewares.userPermissions import require_permission
 from db.postgressDB import get_db
@@ -14,16 +12,39 @@ router = APIRouter(
     tags = ["Link Cloud"]
 )
 
+@router.get("",
+    dependencies=[Depends(require_permission("cloud:read"))],
+    include_in_schema=False,
+)
+@router.get("/",
+    dependencies=[Depends(require_permission("cloud:read"))]
+)
+async def all_linked_clouds(db: AsyncSession = Depends(get_db)):
+    return await get_all_cloud_accounts(db=db)
+
+
 @router.get("/{organization_id}",
     dependencies=[Depends(require_permission("cloud:read"))]
 )
-async def all_linked_Clouds(organization_id: str, db: AsyncSession = Depends(get_db)):
-    return get_all_cloud_accounts(db=db, organization_id=organization_id)
+async def all_linked_clouds_by_organization(
+    organization_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_all_cloud_accounts(db=db)
 
 
 @router.post("/create/{organization_id}/user/{userId}",
     dependencies=[Depends(require_permission("cloud:read"))]
 )
-async def all_linked_Clouds(organization_id: str, userId: str, data: CreateNewCloudAccount ,db: AsyncSession = Depends(get_db)):
-    return add_new_cloud_account(db=db, organization_id=organization_id, user_id=userId, data=data)
+async def create_linked_cloud(
+    organization_id: str,
+    userId: str,
+    data: CreateNewCloudAccount,
+    db: AsyncSession = Depends(get_db),
+):
+    return await add_new_cloud_account(
+        db=db,
+        user_id=userId,
+        data=data,
+    )
 

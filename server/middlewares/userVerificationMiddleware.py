@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+ROOT_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT_DIR / "server" / ".env")
+load_dotenv(ROOT_DIR / "infra" / ".env")
 
 SECRET = os.getenv("JWT_SECRET_KEY", "")    
 
