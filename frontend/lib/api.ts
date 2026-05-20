@@ -18,7 +18,6 @@ function backendSearchUrl(path: string) {
   return new URL(backendUrl(path), origin);
 }
 
-import { permission } from "process";
 import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -705,7 +704,9 @@ export const awsApi = {
       },
       body: JSON.stringify(account_uuid ? { account_uuid } : {}),
     });
-    if (!res.ok) throw new Error(`Scan failed: ${res.statusText}`);
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Scan failed"));
+    }
     const body = await res.json();
     if (body?.success === false) {
       throw new Error(body.error ?? "Scan failed");
@@ -916,13 +917,13 @@ export const azurePoliciesApi = {
 
 export const yamlApi = {
   getPolicies: async (details: { provider: string | null }): Promise<[]> => {
-    let url = `${BASE}/yaml/policies/`;
+    let url = `${BASE}/yaml/policies`;
     if (details.provider) url = `${BASE}/yaml/policies/${details.provider}`;
     const res = await apiFetch(url, {
       headers: authHeaders(),
     });
     if (!res.ok)
-      throw new Error(`YAML policies fetch failed: ${res.statusText}`);
+      throw new Error(await parseApiError(res, "YAML policies fetch failed"));
     return res.json();
   },
 
@@ -931,13 +932,13 @@ export const yamlApi = {
     service: string,
     yamlContent: string,
   ): Promise<void> => {
-    const res = await apiFetch(`${BASE}/yaml/upload/`, {
+    const res = await apiFetch(`${BASE}/yaml/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ provider, service, yaml_content: yamlContent }),
     });
     if (!res.ok)
-      throw new Error(`YAML policy creation failed: ${res.statusText}`);
+      throw new Error(await parseApiError(res, "YAML policy creation failed"));
   },
 
   deletePolicy: async (id: string): Promise<void> => {
@@ -946,7 +947,7 @@ export const yamlApi = {
       headers: authHeaders(),
     });
     if (!res.ok)
-      throw new Error(`YAML policy deletion failed: ${res.statusText}`);
+      throw new Error(await parseApiError(res, "YAML policy deletion failed"));
   },
 
   getPolicyById: async (id: string): Promise<{ policy: unknown }> => {
@@ -954,7 +955,7 @@ export const yamlApi = {
       headers: authHeaders(),
     });
     if (!res.ok)
-      throw new Error(`YAML policy fetch by ID failed: ${res.statusText}`);
+      throw new Error(await parseApiError(res, "YAML policy fetch by ID failed"));
     return res.json();
   },
 
@@ -974,7 +975,7 @@ export const yamlApi = {
       }),
     });
     if (!res.ok)
-      throw new Error(`YAML policy update failed: ${res.statusText}`);
+      throw new Error(await parseApiError(res, "YAML policy update failed"));
   },
 };
 

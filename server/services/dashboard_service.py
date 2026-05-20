@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import HTTPException, Query, Request
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -145,7 +145,8 @@ def parse_user_id(request: Request) -> uuid.UUID | str | None:
 async def recent_scans_service(
     request: Request,
     db: AsyncSession,
-    limit: int = Query(default=25, ge=1, le=100),):
+    limit: int = Query(default=25, ge=1, le=100),
+):
     user_id = parse_user_id(request)
 
     query = (

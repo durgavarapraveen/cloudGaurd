@@ -1,6 +1,15 @@
 import yaml
 from bson import ObjectId
+from bson.errors import InvalidId
 from db.db import db
+
+
+def _object_id(document_id: str) -> ObjectId:
+    try:
+        return ObjectId(document_id)
+    except (InvalidId, TypeError):
+        raise ValueError("Invalid policy id")
+
 
 async def store_yaml(provider: str, service: str, yaml_content: str):
     """
@@ -10,9 +19,13 @@ async def store_yaml(provider: str, service: str, yaml_content: str):
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML content: {str(e)}")
+    if not isinstance(data, dict):
+        raise ValueError("YAML content must be a mapping with a rules list")
+    if not isinstance(data.get("rules"), list):
+        raise ValueError("YAML content must include a rules list")
 
     document = {
-        "provider": provider,
+        "provider": provider.lower(),
         "service": service,
         "data": data,
     }   
@@ -49,12 +62,12 @@ async def get_policy_by_provider(provider: str = None):
     return results
 
 async def delete_policy(document_id: str):
-    result = await db["resources"].delete_one({"_id": ObjectId(document_id)})
+    result = await db["resources"].delete_one({"_id": _object_id(document_id)})
     return result.deleted_count > 0
 
 
 async def get_policy_by_id(document_id: str):
-    doc = await db["resources"].find_one({"_id": ObjectId(document_id)})
+    doc = await db["resources"].find_one({"_id": _object_id(document_id)})
     if doc:
         doc["_id"] = str(doc["_id"])
     return doc
@@ -64,12 +77,19 @@ async def edit_policy_by_id(document_id: str, provider: str, service: str, yaml_
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML content: {str(e)}")
+    if not isinstance(data, dict):
+        raise ValueError("YAML content must be a mapping with a rules list")
+    if not isinstance(data.get("rules"), list):
+        raise ValueError("YAML content must include a rules list")
 
     update_doc = {
-        "provider": provider,
+        "provider": provider.lower(),
         "service": service,
         "data": data,
     }
 
-    result = await db["resources"].update_one({"_id": ObjectId(document_id)}, {"$set": update_doc})
-    return result.modified_count > 0
+    result = await db["resources"].update_one(
+        {"_id": _object_id(document_id)},
+        {"$set": update_doc},
+    )
+    return result.matched_count > 0

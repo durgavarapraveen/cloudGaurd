@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import HTTPException, Request
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,6 +44,17 @@ async def get_resources_DB(
     request: Request
 ):
     user_id = parse_user_id(request)
+
+    query = (
+        select(Scans, Accounts)
+        .join(Accounts, Scans.cloud_account_id == Accounts.id)
+        .order_by(
+            desc(Scans.completed_at).nullslast(),
+            desc(Scans.started_at),
+            desc(Scans.created_at),
+        )
+        .limit(1)
+    )
     
     if user_id:
         query = query.where(Accounts.user_id == user_id)
@@ -86,4 +97,3 @@ async def get_resources_DB(
             "inventory": len(resources),
         },
     }
-    

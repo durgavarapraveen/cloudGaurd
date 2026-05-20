@@ -1,16 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import {
   Cloud,
   Plus,
   Shield,
   Server,
   KeyRound,
-  CheckCircle2,
-  Trash2,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import Link from "next/link";
 

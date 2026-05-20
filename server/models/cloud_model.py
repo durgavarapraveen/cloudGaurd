@@ -45,19 +45,6 @@ class Cloud(Base):
         default=uuid7,
     )
 
-    # =========================
-    # OWNERSHIP
-    # =========================
-
-    organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "organizations.id",
-            ondelete="CASCADE",
-        ),
-        nullable=False,
-    )
-
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(

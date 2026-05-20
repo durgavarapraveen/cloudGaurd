@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   KeyRound,
   Layers3,
-  Edit2,
   Check,
   Pencil,
   X,
