@@ -10,7 +10,7 @@ from sqlalchemy.sql import func
 
 class RootUsers(Base):
     
-    __table__ = "rootUsers"
+    __tablename__ = "rootUsers"
     
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -18,8 +18,13 @@ class RootUsers(Base):
         default=uuid7
     )
     
-    name: Mapped[str] = mapped_column(
+    username: Mapped[str] = mapped_column(
         String(50),
+        nullable=False
+    )
+    
+    password: Mapped[str] = mapped_column(
+        String(100),
         nullable=False
     )
     
@@ -28,16 +33,7 @@ class RootUsers(Base):
         nullable=False
     )
     
-    organization: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "organization.id",
-            ondelete="SET NULL"
-        ),
-        nullable=True
-    )
-    
-    organizations = relationship(
+    organization = relationship(
         "Organization",
-        back_populates="rootUsers"
+        back_populates="owner",
     )

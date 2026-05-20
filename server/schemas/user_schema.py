@@ -9,6 +9,8 @@ class CreateUserRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     
     roles: list[str] = Field(default_factory=list)
+    
+    organizationId: str
 
 
 class UserResponse(BaseModel):

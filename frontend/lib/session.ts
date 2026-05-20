@@ -15,6 +15,32 @@ export function saveSession(session: LoginResponse) {
   );
 }
 
+export function encodeSessionForHandoff(session: LoginResponse) {
+  return encodeURIComponent(btoa(JSON.stringify(session)));
+}
+
+export function consumeSessionHandoff() {
+  if (typeof window === "undefined") return;
+
+  const prefix = "#session=";
+  if (!window.location.hash.startsWith(prefix)) return;
+
+  try {
+    const encodedSession = window.location.hash.slice(prefix.length);
+    const session = JSON.parse(
+      atob(decodeURIComponent(encodedSession)),
+    ) as LoginResponse;
+    saveSession(session);
+    window.history.replaceState(
+      null,
+      document.title,
+      `${window.location.pathname}${window.location.search}`,
+    );
+  } catch {
+    clearSession();
+  }
+}
+
 export function clearSession() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);

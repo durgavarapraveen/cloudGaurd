@@ -10,7 +10,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship    
 )
 
 from sqlalchemy.dialects.postgresql import UUID
@@ -69,9 +68,3 @@ class Accounts(Base):
         onupdate=datetime.utcnow,
         nullable=False
     )
-    
-    scans = relationship(
-    "Scans",
-    back_populates="account",
-    cascade="all, delete-orphan"
-)

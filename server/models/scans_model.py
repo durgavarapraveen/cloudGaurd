@@ -20,6 +20,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship
 )
+from sqlalchemy.sql import func
 
 from uuid6 import uuid7
 
@@ -38,7 +39,7 @@ class Scans(Base):
 
     cloud_account_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("cloud_accounts.id"),
         nullable=False
     )
 
@@ -131,18 +132,40 @@ class Scans(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow
+        default=datetime.utcnow,
+        server_default=func.now()
+    )
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="scans",
     )
 
-    # Relationships
-
-    account = relationship(
-        "Accounts",
+    cloud_account = relationship(
+        "CloudAccounts",
         back_populates="scans"
     )
 
     findings = relationship(
         "Findings",
         back_populates="scan",
+        # uselist=False,
+        cascade="all, delete-orphan",
+        
+    )
+    
+    summary = relationship(
+        "Summary",
+        back_populates="scans",
+        uselist=False,
         cascade="all, delete-orphan"
     )

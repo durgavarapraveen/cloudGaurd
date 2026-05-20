@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from models.scans_model import Scans
-from models.findings import Findings
+from models.findings_model import Findings
 from models.resources_model import Resources
 
 

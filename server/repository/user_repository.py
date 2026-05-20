@@ -1,59 +1,75 @@
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 from typing import List
 
-from models.userModel import User
+from fastapi import HTTPException, Request
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from models.rolesModel import Role
+from models.userModel import User
 
 
-async def get_user_by_email(db: AsyncSession, email: str):
-    result = await db.execute(
+def get_request_organization_id(request: Request):
+    return (
+        getattr(request.state, "organizationId", None)
+        or getattr(request.state, "organizationID", None)
+    )
+
+
+async def get_user_by_email(
+    db: AsyncSession,
+    email: str,
+    request: Request | None = None,
+):
+    query = (
         select(User)
         .where(User.email == email)
-        .options(selectinload(User.roles))  # ✅ eager load roles
+        .options(selectinload(User.roles))
     )
-    return result.scalar_one_or_none()  # returns None if not found (no exception)
+
+    if request is not None:
+        organization_id = get_request_organization_id(request)
+        query = query.where(User.organization_id == organization_id)
+
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
 
 async def create_user(db: AsyncSession, user: User):
-    print(user)
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    
-    # roles also to user
-    
-    
     return user
 
 
-async def get_all_users(db: AsyncSession):
+async def get_all_users(db: AsyncSession, request: Request):
+    organization_id = get_request_organization_id(request)
     result = await db.execute(
         select(User)
-        .options(selectinload(User.roles))  # ✅ eager load roles
+        .where(User.organization_id == organization_id)
+        .options(selectinload(User.roles))
     )
-    result = result.scalars().all()
-    
-    return [  # ✅ return list of dicts
+    users = result.scalars().all()
+
+    return [
         {
             "user_id": str(user.id),
             "username": user.username,
             "email": user.email,
             "is_active": user.is_active,
             "is_deleted": user.is_deleted,
-            "roles": [role.name for role in user.roles]
+            "roles": [role.name for role in user.roles],
         }
-        for user in result
+        for user in users
     ]
 
 
-async def get_user_by_id(db: AsyncSession, user_id: str):  # ✅ str not string
+async def get_user_by_id(db: AsyncSession, user_id: str, request: Request):
+    organization_id = get_request_organization_id(request)
     result = await db.execute(
         select(User)
-        .where(User.id == user_id)
-        .options(selectinload(User.roles))  # ✅ eager load roles
+        .where(User.id == user_id, User.organization_id == organization_id)
+        .options(selectinload(User.roles))
     )
     user = result.scalar_one_or_none()
 
@@ -63,19 +79,28 @@ async def get_user_by_id(db: AsyncSession, user_id: str):  # ✅ str not string
     return user
 
 
-async def get_all_users_with_roles(db: AsyncSession, roles: List[str]):
-    # ✅ filter users who have any of the given role names
+async def get_all_users_with_roles(
+    db: AsyncSession,
+    roles: List[str],
+    request: Request,
+):
+    organization_id = get_request_organization_id(request)
     result = await db.execute(
         select(User)
         .join(User.roles)
-        .where(Role.name.in_(roles))
+        .where(Role.name.in_(roles), User.organization_id == organization_id)
         .options(selectinload(User.roles))
     )
     return result.scalars().unique().all()
 
 
-async def delete_user(db: AsyncSession, user_id: str):  # ✅ str not string
-    user = await db.get(User, user_id)
+async def delete_user(db: AsyncSession, user_id: str, request: Request):
+    organization_id = get_request_organization_id(request)
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id, User.organization_id == organization_id)
+    )
+    user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -92,16 +117,22 @@ async def logout_user(user_id: str, db: AsyncSession):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.is_active = False  # ✅ deactivate user on logout
+    user.is_active = False
     await db.commit()
 
     return {"message": "User logged out successfully"}
 
 
-async def edit_user_roles(user_id: str, roles: List[str], db: AsyncSession):
+async def edit_user_roles(
+    user_id: str,
+    roles: List[str],
+    db: AsyncSession,
+    request: Request,
+):
+    organization_id = get_request_organization_id(request)
     result = await db.execute(
         select(User)
-        .where(User.id == user_id)
+        .where(User.id == user_id, User.organization_id == organization_id)
         .options(selectinload(User.roles))
     )
     user = result.scalar_one_or_none()
@@ -120,10 +151,9 @@ async def edit_user_roles(user_id: str, roles: List[str], db: AsyncSession):
     user.roles = role_objects
     await db.commit()
 
-    # ✅ re-fetch instead of refresh
     updated = await db.execute(
         select(User)
-        .where(User.id == user_id)
+        .where(User.id == user_id, User.organization_id == organization_id)
         .options(selectinload(User.roles))
     )
     updated_user = updated.scalar_one()
@@ -133,24 +163,35 @@ async def edit_user_roles(user_id: str, roles: List[str], db: AsyncSession):
         "user_id": str(updated_user.id),
         "username": updated_user.username,
         "email": updated_user.email,
-        "roles": [role.name for role in updated_user.roles]  # ✅ uncommented
+        "roles": [role.name for role in updated_user.roles],
     }
-    
-def edit_user_info(user_id: str, name: str, email: str, db: AsyncSession):
-    user = db.get(User, user_id)
+
+
+async def edit_user_info(
+    user_id: str,
+    name: str,
+    email: str,
+    db: AsyncSession,
+    request: Request,
+):
+    organization_id = get_request_organization_id(request)
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id, User.organization_id == organization_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     user.username = name
     user.email = email
-    
-    db.commit()
-    db.refresh(user)
+
+    await db.commit()
+    await db.refresh(user)
     return {
         "message": "User info updated successfully",
         "user_id": str(user.id),
         "username": user.username,
-        "email": user.email
+        "email": user.email,
     }
-    
-    

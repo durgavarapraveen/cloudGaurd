@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from models.cloud_model import Cloud
+from models.cloudAccount_Model import CloudAccounts
 from schemas.CloudAccounts_Schema import (
     CreateNewCloudAccount,
 )
@@ -12,7 +12,7 @@ from schemas.CloudAccounts_Schema import (
 async def get_all_cloud_accounts(
     db: AsyncSession,
 ):
-    query = select(Cloud)
+    query = select(CloudAccounts)
 
     result = await db.execute(query)
 
@@ -46,9 +46,9 @@ async def add_new_cloud_account(
 
     # Check duplicate name for this provider.
     existing_result = await db.execute(
-        select(Cloud).where(
-            Cloud.provider == data.provider,
-            Cloud.account_name == data.account_name,
+        select(CloudAccounts).where(
+            CloudAccounts.provider == data.provider,
+            CloudAccounts.account_name == data.account_name,
         )
     )
 
@@ -60,7 +60,7 @@ async def add_new_cloud_account(
             detail="Same account name already exists for this provider",
         )
 
-    cloud = Cloud(
+    cloud = CloudAccounts(
         created_by=user_id,
         provider=data.provider,
         account_name=data.account_name,

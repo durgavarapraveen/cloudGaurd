@@ -1,24 +1,34 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.permission import Permission
 
-async def get_all_permissions(db: AsyncSession):
+async def get_all_permissions(db: AsyncSession, request: Request):
+    organization_id = request.state.organizationId
     permissions = await db.execute(
         select(Permission)
+        .where(Permission.organization_id == organization_id )
     )
     permissions = permissions.scalars().all()
     return permissions
 
-async def add_permission(db: AsyncSession, permission_name: str):
+async def add_permission(db: AsyncSession, permission_name: str, request: Request):
+    organization_id = request.state.organizationId
+    print(organization_id)
     # Check if permission already exists
     existing_permission = await db.execute(
-        select(Permission).where(Permission.name == permission_name)
+        select(Permission).where(
+            Permission.name == permission_name,
+            Permission.organization_id == organization_id,
+        )
     )
     if existing_permission.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Permission already exists")
     
-    new_permission = Permission(name=permission_name)
+    new_permission = Permission(
+        name=permission_name,
+        organization_id=organization_id
+    )
     db.add(new_permission)
     await db.commit()
     await db.refresh(new_permission)

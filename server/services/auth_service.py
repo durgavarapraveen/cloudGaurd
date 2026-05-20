@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from os import urandom
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
@@ -43,8 +43,7 @@ async def register_user(db: AsyncSession, data: CreateUserRequest):
 
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
-    
-     # ✅ fetch default role
+
     result = await db.execute(select(Role).where(Role.name == "user"))
     default_role = result.scalar_one_or_none()
 
@@ -53,11 +52,11 @@ async def register_user(db: AsyncSession, data: CreateUserRequest):
         email=data.email,
         password=hash_password(data.password),
         is_active=True,
-        created_at=datetime.now(timezone.utc).isoformat()
+        organization_id=data.organizationId
     )
     
     if default_role:
-        user.role.append(default_role)
+        user.roles.append(default_role)
 
     return await create_user(db, user)
 
@@ -67,7 +66,7 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
         select(User)
         .where(User.email == data.email)
         .options(
-            selectinload(User.roles).selectinload(Role.permissions)  # ✅ chain load
+            selectinload(User.roles).selectinload(Role.permissions)
         )
     )
     user = result.scalar_one_or_none()
@@ -78,20 +77,19 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
     if not verify_password(data.password, user.password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    # ✅ both roles and permissions already loaded
-    permissions = []
-    for role in user.roles:
-        for perm in role.permissions:
-            permissions.append(perm.name)
-
-    access_token = create_access_token(user.id, permissions, secret_key)
+    access_token = create_access_token(user.id, user.organization_id, secret_key)
     refresh_token = create_refresh_token(user.id, secret_key)
+    permissions = [
+        permission.name
+        for role in user.roles
+        for permission in role.permissions
+    ]
 
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "user_id": str(user.id),
-        "permissions": permissions,  # ✅ useful to return for frontend
+        "permissions": permissions,
         "message": "Login successful"
     }
 
@@ -139,7 +137,7 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         for perm in role.permissions:
             permissions.append(perm.name)
 
-    new_access_token = create_access_token(str(users.id), permissions, secret_key)
+    new_access_token = create_access_token(str(users.id), str(users.organization_id), secret_key)
     new_refresh_token = create_refresh_token(str(users.id), secret_key)
     return {
         "access_token": new_access_token,
@@ -150,8 +148,9 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
     }
     
     
-async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
-    existing_user = await get_user_by_email(db, data.email)
+async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest, request: Request):
+    organization_id = request.state.organizationId
+    existing_user = await get_user_by_email(db, data.email, request)
 
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -172,8 +171,8 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest):
         email=data.email,
         password=hash_password(password),
         is_active=True,
-        created_at=datetime.now(timezone.utc).isoformat(),
-        roles = role_objects
+        roles = role_objects,
+        organization_id=organization_id
     )
     
 

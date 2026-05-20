@@ -210,12 +210,27 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface RootLoginPayload {
+  username: string;
+  password: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
   user_id: string;
   permissions: string[];
   message: string;
+}
+
+export interface RootLoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user_id: string;
+  userId?: string;
+  permissions: string[];
+  message: string;
+  slug: string;
 }
 
 export interface UserProfile {
@@ -306,6 +321,20 @@ function saveRefreshedSession(session: LoginResponse) {
   );
 }
 
+function getAccessTokenPayload(): Record<string, unknown> | null {
+  if (typeof window === "undefined") return null;
+
+  const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  const payload = token?.split(".")[1];
+  if (!payload) return null;
+
+  try {
+    return JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
 async function refreshAccessToken(): Promise<LoginResponse> {
   if (typeof window === "undefined") {
     throw new Error("Token refresh is only available in the browser");
@@ -316,7 +345,13 @@ async function refreshAccessToken(): Promise<LoginResponse> {
     throw new Error("Missing refresh token");
   }
 
-  const res = await fetch(`${BASE}/auth/refresh-token`, {
+  const payload = getAccessTokenPayload();
+  const refreshPath =
+    payload?.privilege === "rootUser"
+      ? "/root_user/refresh-token"
+      : "/auth/refresh-token";
+
+  const res = await fetch(`${BASE}${refreshPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshToken }),
@@ -332,11 +367,14 @@ async function refreshAccessToken(): Promise<LoginResponse> {
 }
 
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const hostname = window.location.hostname;
+  const slug = hostname.split(".")[0];
   const requestInit = {
     ...init,
     headers: {
       ...(init.headers as Record<string, string> | undefined),
       ...authHeaders(),
+      "X-Tenant-Slug": slug,
     },
   };
 
@@ -363,6 +401,7 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
     headers: {
       ...requestInit.headers,
       ...authHeaders(),
+      "X-Tenant-Slug": slug,
     },
   });
 }
@@ -375,6 +414,39 @@ async function parseApiError(res: Response, fallback: string) {
     return fallback;
   }
 }
+
+export const rootUserAuthApi = {
+  login: async (
+    payload: RootLoginPayload,
+    organizationID: string,
+  ): Promise<RootLoginResponse> => {
+    const res = await fetch(`${BASE}/root_user/login/${organizationID}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Login failed"));
+    }
+    const session = (await res.json()) as RootLoginResponse;
+    return {
+      ...session,
+      user_id: session.user_id ?? session.userId ?? "",
+      permissions: session.permissions ?? [],
+    };
+  },
+
+  logout: async (userId: string): Promise<{ message: string }> => {
+    const res = await apiFetch(`${BASE}/auth/logout/${userId}`, {
+      method: "PUT",
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+};
 
 export const authApi = {
   register: async (
@@ -955,7 +1027,9 @@ export const yamlApi = {
       headers: authHeaders(),
     });
     if (!res.ok)
-      throw new Error(await parseApiError(res, "YAML policy fetch by ID failed"));
+      throw new Error(
+        await parseApiError(res, "YAML policy fetch by ID failed"),
+      );
     return res.json();
   },
 

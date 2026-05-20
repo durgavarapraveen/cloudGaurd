@@ -6,7 +6,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.accounts_model import Accounts
-from models.findings import Findings
+from models.findings_model import Findings
 from models.resources_model import Resources
 from models.scans_model import Scans
 

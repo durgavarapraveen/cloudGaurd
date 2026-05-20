@@ -8,9 +8,20 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from models.Base import Base
+
+# Import models so they are registered on Base.metadata before create_all().
+from models.orginization_model import Organization
+from models.rootUser_model import RootUsers
 from models.userModel import User
 from models.rolesModel import Role
 from models.permission import Permission
+from models.groups_Model import UserGroups
+from models.cloudAccount_Model import CloudAccounts
+from models.scans_model import Scans
+from models.findings_model import Findings
+from models.resources_model import Resources
+from models.summary_model import Summary
+from models.accounts_model import Accounts
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

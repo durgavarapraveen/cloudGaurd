@@ -1,17 +1,17 @@
 import uuid
 
-from sqlalchemy import String, Table, Column, ForeignKey, Boolean
+from sqlalchemy import String, Boolean, Table, Column, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from uuid6 import uuid7
 from .Base import Base
 
-from .associations import user_roles, role_permissions
+from .associations import userGroup_permissions, userGroup_users
 
-class Role(Base):
+class UserGroups(Base):
 
-    __tablename__ = "roles"
-
+    __tablename__ = "user_groups"
+    
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -20,17 +20,7 @@ class Role(Base):
 
     name: Mapped[str] = mapped_column(
         String(50),
-    )
-
-    permissions = relationship(
-        "Permission",
-        secondary=role_permissions,
-        back_populates="roles"
-    )
-    
-    is_deleted: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False
+        nullable=False
     )
     
     organization_id: Mapped[uuid.UUID] = mapped_column(
@@ -44,11 +34,20 @@ class Role(Base):
     
     organization = relationship(
         "Organization",
-        back_populates="roles",
+        back_populates="user_groups",
     )
-
+    
     users = relationship(
         "User",
-        secondary=user_roles,
-        back_populates="roles"
+        secondary=userGroup_users,
+        back_populates="groups"
     )
+    
+    permissions = relationship(
+        "Permission",
+        secondary=userGroup_permissions
+    )
+    
+    
+    
+    

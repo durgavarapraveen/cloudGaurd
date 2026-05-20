@@ -7,8 +7,7 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(
-    user_id: str,
-    organization_id: str,
+    username: str,
     secret_key: str,
     expires_in: int = 15
 ) -> str:
@@ -16,13 +15,11 @@ def create_access_token(
     now = datetime.now(timezone.utc)
 
     payload = {
-        "sub": str(user_id),
+        "sub": str(username),
         "type": "access",
-        "organization":str(organization_id),
-        "privilege": "user",
+        "privilege": "rootUser",
         "iat": now,
         "exp": now + timedelta(minutes=expires_in),
-
         "jti": str(uuid.uuid4())
     }
 
@@ -34,7 +31,7 @@ def create_access_token(
 
 
 def create_refresh_token(
-    user_id: str,
+    username: str,
     secret_key: str,
     expires_in: int = 7
 ) -> str:
@@ -42,7 +39,7 @@ def create_refresh_token(
     now = datetime.now(timezone.utc)
 
     payload = {
-        "sub": str(user_id),
+        "sub": str(username),
         "type": "refresh",
 
         "iat": now,
@@ -99,9 +96,9 @@ def checkRefreshTokenValidity(token: str, secret_key: str) -> dict:
             raise jwt.ExpiredSignatureError(status_code=401, detail="Please Login again")
         
         # get user id from payload
-        user_id = payload.get("sub")
+        username = payload.get("sub")
 
-        return user_id
+        return username
 
     except jwt.ExpiredSignatureError:
         raise Exception("Token has expired")

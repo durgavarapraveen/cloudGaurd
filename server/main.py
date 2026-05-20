@@ -12,6 +12,8 @@ from api.roles_routes import router as role_router
 from api.permission_route import router as permission_router
 from api.dashboard_routes import router as dashboard_router
 from api.cloud_routes import router as cloud_router
+from api.rootUser_routes import router as rootUser_router
+from api.organization_routes import router as organization_router
 from db.postgressDB import engine
 from middlewares.userVerificationMiddleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,6 +53,8 @@ app.include_router(role_router)
 app.include_router(permission_router)
 app.include_router(dashboard_router)
 app.include_router(cloud_router)
+app.include_router(rootUser_router)
+app.include_router(organization_router)
 
 
 # 3. Root route
