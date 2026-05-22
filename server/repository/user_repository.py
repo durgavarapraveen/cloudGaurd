@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import HTTPException, Request
+from psycopg2 import IntegrityError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -36,9 +37,14 @@ async def get_user_by_email(
 
 
 async def create_user(db: AsyncSession, user: User):
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    try:
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Email already registered")
+    
     return user
 
 

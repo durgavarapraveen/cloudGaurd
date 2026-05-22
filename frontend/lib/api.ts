@@ -19,6 +19,12 @@ function backendSearchUrl(path: string) {
 }
 
 import toast from "react-hot-toast";
+import {
+  ACCESS_TOKEN_KEY,
+  PERMISSIONS_KEY,
+  REFRESH_TOKEN_KEY,
+  USER_ID_KEY,
+} from "./session-keys";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -286,6 +292,74 @@ export interface Role {
   permissions: string[];
 }
 
+export interface CreateCloudAccount {
+  provider: string;
+  account_name: string;
+  account_identifier: string;
+  credentials: Record<string, string>;
+}
+
+export type ResourceItem = {
+  service: string;
+  resource_id: string;
+};
+
+export interface ResourceSummaryResponse {
+  cloud_account_id: string;
+  fetched_date: string;
+  id: string;
+  newly_added_resources_count: number;
+  organization_id: string;
+  provider: string;
+  total_resources_fetched_count: number;
+  updated_resources_count: number;
+  updated_resources_ids: ResourceItem[];
+  newly_added_resources_ids: ResourceItem[];
+}
+
+// interface RawResourceSummaryResponse extends Omit<
+//   ResourceSummaryResponse,
+//   "updated_resource_ids" | "newly_added_resource_ids"
+// > {
+//   updated_resources_ids?: ResourceItem[];
+//   newly_added_resources_ids?: ResourceItem[];
+//   updated_resource_ids?: ResourceItem[];
+//   newly_added_resource_ids?: ResourceItem[];
+// }
+
+export interface ResourceDetailResponse {
+  id: string;
+  service: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string | null;
+  arn: string | null;
+  region: string | null;
+  tags: Record<string, unknown>;
+  configuration: Record<string, unknown>;
+}
+
+function normalizeResourceSummary(
+  summary: ResourceSummaryResponse,
+): ResourceSummaryResponse {
+  return {
+    ...summary,
+    updated_resources_ids:
+      summary.updated_resources_ids ?? summary.updated_resources_ids ?? [],
+    newly_added_resources_ids:
+      summary.newly_added_resources_ids ??
+      summary.newly_added_resources_ids ??
+      [],
+  };
+}
+
+export type PaginationMeta = {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
 function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
 
@@ -296,11 +370,6 @@ function authHeaders(): HeadersInit {
   }
   return headers;
 }
-
-const ACCESS_TOKEN_KEY = "cloudguard_access_token";
-const REFRESH_TOKEN_KEY = "cloudguard_refresh_token";
-const USER_ID_KEY = "cloudguard_user_id";
-const PERMISSIONS_KEY = "cloudguard_permissions";
 
 function clearStoredSession() {
   if (typeof window === "undefined") return;
@@ -341,6 +410,10 @@ async function refreshAccessToken(): Promise<LoginResponse> {
   }
 
   const refreshToken = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+
+  console.debug("[refresh] key:", REFRESH_TOKEN_KEY, "found:", !!refreshToken);
+  console.debug("[refresh] all localStorage keys:", Object.keys(localStorage));
+
   if (!refreshToken) {
     throw new Error("Missing refresh token");
   }
@@ -915,18 +988,30 @@ export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
   scan: async ({
     services,
+    account_identifier,
   }: {
     services: string[];
+    account_identifier: string;
   }): Promise<ScannerResult> => {
     if (!services || services.length === 0) {
       throw new Error("No services selected");
     }
-    // Convert array to comma-separated string for URL
-    const serviceParam = encodeURIComponent(services.join(","));
-    const res = await apiFetch(`${BASE}/aws/scanner/scan/${serviceParam}`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Scanner failed: ${res.statusText}`);
+
+    const serviceParam = services.join(",");
+    console.log(serviceParam);
+
+    const res = await apiFetch(
+      `${BASE}/resources/resources_cloud/${account_identifier}?services=${serviceParam}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+    console.log(res);
+
+    if (!res.ok) {
+      throw new Error(`Scanner failed: ${res.statusText}`);
+    }
+
     return res.json();
   },
 
@@ -958,6 +1043,96 @@ export const awsScannerApi = {
     });
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Scan details fetch failed"));
+    }
+    return res.json();
+  },
+
+  fetch_resources_summary: async ({
+    account_identifier,
+  }: {
+    account_identifier: string;
+  }): Promise<ResourceSummaryResponse[]> => {
+    const res = await apiFetch(
+      `${BASE}/resources/summary/${account_identifier}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Scan details fetch failed"));
+    }
+    const body = (await res.json()) as ResourceSummaryResponse[];
+    return body.map(normalizeResourceSummary);
+  },
+
+  fetch_resources_summary_with_ID: async ({
+    resourceSummaryID,
+  }: {
+    resourceSummaryID: string;
+  }): Promise<ResourceSummaryResponse> => {
+    const res = await apiFetch(
+      `${BASE}/resources/summary_ID/${resourceSummaryID}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Summary fetch failed"));
+    }
+    const body = (await res.json()) as ResourceSummaryResponse;
+    const summary = Array.isArray(body) ? body[0] : body;
+    if (!summary) {
+      throw new Error("Resource summary not found");
+    }
+    return normalizeResourceSummary(summary);
+  },
+
+  fetch_resource_detail: async ({
+    summaryId,
+    resourceId,
+  }: {
+    summaryId: string;
+    resourceId: string;
+  }): Promise<ResourceDetailResponse> => {
+    const res = await apiFetch(
+      `${BASE}/resources/summary_ID/${summaryId}/${encodeURIComponent(resourceId)}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Summary fetch failed"));
+    }
+    return res.json();
+  },
+
+  fetch_resources: async ({
+    account_identifier,
+    page = 1,
+    page_size = 50,
+    service,
+  }: {
+    account_identifier: string;
+    page?: number;
+    page_size?: number;
+    service?: string;
+  }): Promise<{
+    data: ResourceDetailResponse[];
+    pagination: PaginationMeta;
+  }> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(page_size),
+      ...(service ? { service } : {}),
+    });
+
+    const res = await apiFetch(
+      `${BASE}/resources/resources/${account_identifier}?${params}`,
+      { headers: authHeaders() },
+    );
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Resources fetch failed"));
     }
     return res.json();
   },
@@ -1056,12 +1231,38 @@ export const yamlApi = {
 // ------------ Institutional Accounts ----------------
 export const cloudAccounts = {
   getAllAccounts: async (): Promise<[]> => {
-    const url = `${BASE}/cloud`;
+    const url = `${BASE}/cloud_accounts/`;
     const res = await apiFetch(url, {
       headers: authHeaders(),
     });
     if (!res.ok)
       throw new Error(`Cloud Accounts fetch failed: ${res.statusText}`);
     return res.json();
+  },
+
+  deleteAccount: async (id: string): Promise<[]> => {
+    const url = `${BASE}/cloud-accounts/${id}`;
+    const res = await apiFetch(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+    });
+    if (!res.ok)
+      throw new Error(`Cloud Accounts fetch failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  createPolicy: async (data: CreateCloudAccount): Promise<void> => {
+    const res = await apiFetch(`${BASE}/cloud_accounts/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok)
+      throw new Error(
+        await parseApiError(res, "Cloud Account creation failed"),
+      );
   },
 };

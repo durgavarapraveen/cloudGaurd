@@ -1,56 +1,111 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+
 import {
   Cloud,
   Plus,
   Shield,
   Server,
   KeyRound,
+  Trash2,
+  Loader2,
 } from "lucide-react";
+
 import Link from "next/link";
 
-type CloudProvider = {
+type CloudAccount = {
   id: string;
-  name: string;
-  color: string;
-  linked: number;
-  icon: React.ReactNode;
+  provider: string;
+  account_identifier: string;
+  account_name: string;
+  region?: string;
+  status?: string;
+  last_scan?: string;
 };
 
-export default function page() {
-  const providers: CloudProvider[] = [
-    {
-      id: "aws",
-      name: "AWS",
-      color: "emerald",
-      linked: 4,
-      icon: <Cloud className="h-5 w-5" />,
-    },
-    {
-      id: "azure",
-      name: "Azure",
-      color: "cyan",
-      linked: 2,
-      icon: <Shield className="h-5 w-5" />,
-    },
-    {
-      id: "gcp",
-      name: "Google Cloud",
-      color: "purple",
-      linked: 3,
-      icon: <Server className="h-5 w-5" />,
-    },
-    {
-      id: "oci",
-      name: "Oracle OCI",
-      color: "orange",
-      linked: 1,
-      icon: <KeyRound className="h-5 w-5" />,
-    },
-  ];
+import { cloudAccounts } from "@/lib/api";
+
+export default function Page() {
+  const [accounts, setAccounts] = useState<CloudAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function fetchAccounts() {
+    try {
+      setLoading(true);
+      const res = await cloudAccounts.getAllAccounts();
+      console.log(res);
+      setAccounts(res || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteAccount(id: string) {
+    try {
+      setDeleting(id);
+      await cloudAccounts.deleteAccount(id);
+      setAccounts((prev) => prev.filter((account) => account.id !== id));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const providerStats = useMemo(() => {
+    const stats = {
+      aws: 0,
+      azure: 0,
+      gcp: 0,
+      oci: 0,
+    };
+
+    accounts.forEach((account) => {
+      const provider = account.provider?.toLowerCase();
+
+      if (provider in stats) {
+        stats[provider as keyof typeof stats]++;
+      }
+    });
+
+    return [
+      {
+        id: "aws",
+        name: "AWS",
+        linked: stats.aws,
+        icon: <Cloud className="h-5 w-5" />,
+      },
+      {
+        id: "azure",
+        name: "Azure",
+        linked: stats.azure,
+        icon: <Shield className="h-5 w-5" />,
+      },
+      {
+        id: "gcp",
+        name: "Google Cloud",
+        linked: stats.gcp,
+        icon: <Server className="h-5 w-5" />,
+      },
+      {
+        id: "oci",
+        name: "Oracle OCI",
+        linked: stats.oci,
+        icon: <KeyRound className="h-5 w-5" />,
+      },
+    ];
+  }, [accounts]);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white px-4 py-8">
+    <div className="min-h-screen bg-[#020617] px-4 py-8 text-white">
       <div className="mx-auto max-w-7xl">
         {/* HEADER */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -60,7 +115,7 @@ export default function page() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-400">
-              Manage and connect your cloud provider accounts securely
+              Manage and connect your cloud provider accounts
             </p>
           </div>
 
@@ -75,7 +130,7 @@ export default function page() {
 
         {/* STATS */}
         <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {providers.map((provider) => (
+          {providerStats.map((provider) => (
             <div
               key={provider.id}
               className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl"
@@ -97,8 +152,8 @@ export default function page() {
           ))}
         </div>
 
-        {/* CONNECTED ACCOUNTS */}
-        <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
+        {/* TABLE */}
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
           <div className="mb-6">
             <h2 className="text-xl font-semibold">Connected Accounts</h2>
 
@@ -107,70 +162,78 @@ export default function page() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] border-separate border-spacing-y-3">
-              <thead>
-                <tr className="text-left text-sm text-slate-400">
-                  <th className="px-4">Provider</th>
-                  <th className="px-4">Account Name</th>
-                  <th className="px-4">Region</th>
-                  <th className="px-4">Status</th>
-                  <th className="px-4">Last Scan</th>
-                  <th className="px-4">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {[
-                  {
-                    provider: "AWS",
-                    name: "Production AWS",
-                    region: "ap-south-1",
-                    status: "Active",
-                    scan: "5 mins ago",
-                  },
-                  {
-                    provider: "Azure",
-                    name: "Azure Main",
-                    region: "Central India",
-                    status: "Active",
-                    scan: "12 mins ago",
-                  },
-                  {
-                    provider: "GCP",
-                    name: "GCP Analytics",
-                    region: "asia-south1",
-                    status: "Pending",
-                    scan: "1 hour ago",
-                  },
-                ].map((account, idx) => (
-                  <tr key={idx} className="rounded-2xl bg-[#0f172a]/70">
-                    <td className="rounded-l-2xl px-4 py-4">
-                      {account.provider}
-                    </td>
-
-                    <td className="px-4 py-4">{account.name}</td>
-
-                    <td className="px-4 py-4">{account.region}</td>
-
-                    <td className="px-4 py-4">
-                      <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-                        {account.status}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 text-slate-400">{account.scan}</td>
-
-                    <td className="rounded-r-2xl px-4 py-4">
-                      <button className="rounded-xl border border-red-500/10 bg-red-500/5 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10">
-                        Remove
-                      </button>
-                    </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 py-20 text-center text-slate-400">
+              No cloud accounts connected
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] border-separate border-spacing-y-3">
+                <thead>
+                  <tr className="text-left text-sm text-slate-400">
+                    <th className="px-4">Provider</th>
+                    <th className="px-4">Account Name</th>
+                    <th className="px-4">Account Id</th>
+                    <th className="px-4">Region</th>
+                    <th className="px-4">Status</th>
+                    <th className="px-4">Last Scan</th>
+                    <th className="px-4">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody>
+                  {accounts.map((account) => (
+                    <tr key={account.id} className="bg-[#0f172a]/70">
+                      <td className="rounded-l-2xl px-4 py-4">
+                        {account.provider}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {account.account_name || "Unnamed Account"}
+                      </td>
+
+                      <td className="px-4 py-4 text-slate-300">
+                        <Link href={`${account.account_identifier}`}>
+                          {account.account_identifier || "unnamed identifier"}
+                        </Link>
+                      </td>
+
+                      <td className="px-4 py-4">{account.region || "-"}</td>
+
+                      <td className="px-4 py-4">
+                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+                          {account.status || "Active"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4 text-slate-400">
+                        {account.last_scan || "-"}
+                      </td>
+
+                      <td className="rounded-r-2xl px-4 py-4">
+                        <button
+                          onClick={() => deleteAccount(account.id)}
+                          disabled={deleting === account.id}
+                          className="flex items-center gap-2 rounded-xl border border-red-500/10 bg-red-500/5 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          {deleting === account.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

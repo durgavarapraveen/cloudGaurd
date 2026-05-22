@@ -288,18 +288,23 @@ export default function UsersPage() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2 flex-wrap">
                         {user.roles &&
-                          user.roles.map((role: string | { name: string }) => {
-                            const roleName =
-                              typeof role === "string" ? role : role.name;
-                            return (
-                              <span
-                                key={roleName}
-                                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
-                              >
-                                {roleName}
-                              </span>
-                            );
-                          })}
+                          user.roles.map(
+                            (
+                              role: string | { name: string },
+                              index: number,
+                            ) => {
+                              const roleName =
+                                typeof role === "string" ? role : role.name;
+                              return (
+                                <span
+                                  key={`${roleName}-${index}`} // ✅ unique even if roleName repeats
+                                  className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
+                                >
+                                  {roleName}
+                                </span>
+                              );
+                            },
+                          )}
                       </div>
                     </td>
 

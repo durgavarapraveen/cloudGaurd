@@ -79,7 +79,8 @@ def scan_ecs(session, region):
 
 
             results.append({
-
+                "service": "ecs",
+                "arn": cluster.get("clusterArn"),
                 "resource_type": "ecs_cluster",
 
                 "resource_id":
@@ -288,7 +289,8 @@ def scan_ecs(session, region):
 
 
         results.append({
-
+            "service": "ecs",                                    # ✅ add
+            "arn": td.get("taskDefinitionArn"),   
             "resource_type":
                 "ecs_task_definition",
 

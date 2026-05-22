@@ -22,6 +22,7 @@ from models.findings_model import Findings
 from models.resources_model import Resources
 from models.summary_model import Summary
 from models.accounts_model import Accounts
+from models.resourceSummary_model import ResourceSummary
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

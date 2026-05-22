@@ -52,6 +52,8 @@ def require_permission(permission: str):
         request.state.organizationID = orgId
 
         privilege = request.state.privilege
+        
+        print(f"User Privilege: {privilege}")
 
         if privilege == "rootUser":
             return True

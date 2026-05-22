@@ -1,9 +1,10 @@
 import type { LoginResponse } from "@/lib/api";
-
-const ACCESS_TOKEN_KEY = "cloudguard_access_token";
-const REFRESH_TOKEN_KEY = "cloudguard_refresh_token";
-const USER_ID_KEY = "cloudguard_user_id";
-const PERMISSIONS_KEY = "cloudguard_permissions";
+import {
+  ACCESS_TOKEN_KEY,
+  PERMISSIONS_KEY,
+  REFRESH_TOKEN_KEY,
+  USER_ID_KEY,
+} from "./session-keys";
 
 export function saveSession(session: LoginResponse) {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
@@ -46,6 +47,11 @@ export function clearSession() {
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(USER_ID_KEY);
   window.localStorage.removeItem(PERMISSIONS_KEY);
+}
+
+export function hasSession() {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.localStorage.getItem(ACCESS_TOKEN_KEY));
 }
 
 export function getCurrentUserId() {

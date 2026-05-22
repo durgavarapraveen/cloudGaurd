@@ -121,6 +121,11 @@ class Resources(Base):
         nullable=False
     )
     
+    hashValue:  Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True
+    )
+    
     organization = relationship(
         "Organization",
         back_populates="resources",
@@ -134,4 +139,15 @@ class Resources(Base):
     findings = relationship(
         "Findings",
         back_populates="resource"
+    )
+    
+    resource_summary = relationship(
+        "ResourceSummary",
+        back_populates="resources"
+    )
+    
+    resource_summary_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("resource_summary.id", ondelete="CASCADE"),
+        nullable=False
     )

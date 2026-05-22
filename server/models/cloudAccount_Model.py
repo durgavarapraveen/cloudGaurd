@@ -185,3 +185,9 @@ class CloudAccounts(Base):
         back_populates="cloud_account",
         cascade="all, delete-orphan"
     )
+    
+    resource_summary = relationship(
+        "ResourceSummary",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )

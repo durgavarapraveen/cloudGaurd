@@ -76,21 +76,24 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
 
     if not verify_password(data.password, user.password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
+    
+    root_user = False
+    print("User Roles:", [role.name for role in user.roles])  # Debugging line
+    for role in user.roles:
+        if role.name == "rootUser":
+            root_user = True
+            break
+        
 
-    access_token = create_access_token(user.id, user.organization_id, secret_key)
+    access_token = create_access_token(user.id, user.organization_id, secret_key, root_user)
     refresh_token = create_refresh_token(user.id, secret_key)
-    permissions = [
-        permission.name
-        for role in user.roles
-        for permission in role.permissions
-    ]
+    
 
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "user_id": str(user.id),
-        "permissions": permissions,
-        "message": "Login successful"
+        "message": "Login successful",
     }
 
 async def delete_user(db: AsyncSession, user_id: str):
@@ -155,27 +158,16 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest, requ
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
     
-     # ✅ fetch default role
-    result = await db.execute(select(Role).where(Role.name == "user"))
-    default_role = result.scalar_one_or_none()
-    
-    password = urandom(8)
-    
-    role_result = await db.execute(
-        select(Role).where(Role.name.in_(data.roles))
-    )
-    role_objects = role_result.scalars().all()
+    password = "12345678"
 
     user = User(
         username=data.username,
         email=data.email,
         password=hash_password(password),
         is_active=True,
-        roles = role_objects,
         organization_id=organization_id
     )
     
-
     return await create_user(db, user)
 
 

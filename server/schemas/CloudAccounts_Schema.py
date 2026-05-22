@@ -31,8 +31,6 @@ class CreateNewCloudAccount(BaseModel):
 
     credentials: dict[str, Any]
 
-    is_active: bool = True
-
     @field_validator("account_name")
     @classmethod
     def validate_name(cls, value: str):

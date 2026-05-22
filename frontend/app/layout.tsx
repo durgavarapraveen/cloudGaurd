@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/AppShell";
 import SessionHandoff from "@/components/SessionHandoff";
 
 export const metadata: Metadata = {
@@ -20,8 +20,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <SessionHandoff />
-        <Sidebar />
-        <main className="flex-1 ml-56 min-h-screen">{children}</main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
