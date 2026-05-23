@@ -117,12 +117,6 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
     
-    summary = relationship(
-        "Summary",
-        back_populates="organization",
-        cascade="all, delete-orphan"
-    )
-    
     resource_summary = relationship(
         "ResourceSummary",
         back_populates="organization",

@@ -192,47 +192,15 @@ def resolve_path(resource, path):
 # ──────────────────────────────────────────────
 
 def run_check(resource, rule):
-    """
-    Evaluates one rule against one resource.
-
-    Args:
-        resource : dict from aws_collector.py
-                   must have keys: resource_type, resource_id, resource_name, region
-        rule     : dict from loader.py
-                   must have keys: id, title, severity, service, resource_type, check
-
-    Returns a Finding dict:
-    {
-        "rule_id"       : "CIS-S3-01",
-        "rule_title"    : "S3 bucket encryption must be enabled",
-        "severity"      : "HIGH",
-        "service"       : "s3",
-        "resource_type" : "s3_bucket",
-        "resource_id"   : "my-bucket-name",
-        "resource_name" : "my-bucket-name",
-        "region"        : "global",
-        "status"        : "PASS" | "FAIL" | "ERROR" | "SKIP",
-        "actual_value"  : <whatever jmespath resolved to>,
-        "expected_value": <the value field from the rule, if any>,
-        "operator"      : "exists",
-        "remediation"   : "...",
-        "source_file"   : "policies/aws/s3.yaml",
-        "checked_at"    : "2026-04-04T10:00:00+00:00"
-    }
-    """
     rule_resource_type = rule.get("resource_type")
     actual_resource_type = resource.get("resource_type")
-    
-   
-    # Skip if this rule does not apply to this resource type
-    # e.g. don't run s3_bucket rules against ec2_instance resources
     if rule_resource_type != actual_resource_type:
         return _make_finding(resource, rule, Status.SKIP, actual_value=None)
 
     check_block  = rule.get("check", {})
     path         = check_block.get("path")
     operator_key = check_block.get("operator")
-    expected     = check_block.get("value")  # optional — not all operators need it
+    expected     = check_block.get("value")  
     
 
     # Resolve the path against the resource using JMESPath
@@ -283,10 +251,7 @@ def run_check(resource, rule):
 
 
 def _make_finding(resource, rule, status, actual_value=None, expected_value=None, operator=None):
-    """
-    Builds the standardised finding dict returned by run_check().
-    Centralised here so the shape is always consistent.
-    """
+    
     return {
         "rule_id":        rule.get("id"),
         "rule_title":     rule.get("title"),
@@ -312,35 +277,6 @@ def _make_finding(resource, rule, status, actual_value=None, expected_value=None
 # ──────────────────────────────────────────────
 
 async def run_checks(all_resources, all_rules):
-    """
-    Runs every applicable rule against every resource.
-    Skips SKIP-status findings so the output only contains
-    meaningful results (PASS, FAIL, ERROR).
-
-    Args:
-        all_resources : flat list of resource dicts from aws_collector.py
-                        OR the nested dict — this function handles both shapes:
-                        - flat list  : [{"resource_type": "s3_bucket", ...}, ...]
-                        - nested dict: {"s3": [...], "ec2": [...], ...}
-
-        all_rules     : flat list of rule dicts from loader.load_policies()
-
-    Returns:
-        {
-            "findings"  : [ ...finding dicts... ],
-            "summary"   : {
-                "total"   : 42,
-                "passed"  : 30,
-                "failed"  : 10,
-                "errored" : 2,
-                "by_severity": {"CRITICAL": 2, "HIGH": 5, ...},
-                "by_service" : {"s3": 10, "ec2": 20, ...},
-                "score"      : 75.0    ← percentage of checks that passed
-            }
-        }
-    """
-    # Normalise input — handle both flat list and nested dict from collect_all()
-    # flat_resources = _flatten_resources(all_resources)
 
     findings = []
     for resource in all_resources:
@@ -363,14 +299,6 @@ async def run_checks(all_resources, all_rules):
             findings.append(finding)
 
     summary = _build_summary(findings)
-
-    # logger.info(
-    #     f"[checker] Scan complete — "
-    #     f"{summary['total']} checks | "
-    #     f"{summary['passed']} passed | "
-    #     f"{summary['failed']} failed | "
-    #     f"score: {summary['score']}%"
-    # )
 
     return {"findings": findings, "summary": summary}
 

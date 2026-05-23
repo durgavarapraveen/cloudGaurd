@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgressDB import get_db
-from services.db_resources_service import get_resources_DB
 from services.dashboard_service import scan_details_service, recent_scans_service, scan_resources_service
 
 router = APIRouter(
@@ -32,13 +31,6 @@ async def scan_details(
 ):
     return await scan_details_service(scan_id=scan_id, request=request, db=db)
 
-
-@router.get("/db")
-async def fetch_resources(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    return await get_resources_DB(request=request, db=db)
 
 
 @router.get("/scanServices/{accountIdentifier}")
