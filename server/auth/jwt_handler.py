@@ -21,7 +21,7 @@ def create_access_token(
         "sub": str(user_id),
         "type": "access",
         "organization":str(organization_id),
-        "privilege": "rootUser" if root_user else "user",
+        "privilege": "rootUserOrg" if root_user else "user",
         "iat": now,
         "exp": now + timedelta(minutes=expires_in),
 

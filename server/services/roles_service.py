@@ -29,7 +29,6 @@ async def get_all_roles(db: AsyncSession,request: Request):
     ]
 
 async def create_role(db: AsyncSession, role_data: CreateRoleRequest, request: Request):
-    
     return await roles_repo.create_role(db, role_data, request)
 
 async def delete_role(db: AsyncSession, role_id: str, request: Request):

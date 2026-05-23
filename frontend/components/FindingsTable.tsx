@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Finding, Severity } from "@/lib/api";
 import SeverityBadge from "./SeverityBadge";
+import { Finding, Severity } from "@/lib/props";
 
 const SEV_ORDER: Record<string, number> = {
   CRITICAL: 0,

@@ -75,10 +75,10 @@ class Scans(Base):
         default=list
     )
 
-    scan_metadata: Mapped[dict] = mapped_column(
-        JSONB,
-        default=dict
-    )
+    # scan_metadata: Mapped[dict] = mapped_column(
+    #     JSONB,
+    #     default=dict
+    # )
 
     total_resources: Mapped[int] = mapped_column(
         Integer,

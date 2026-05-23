@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-
+import uuid
 class CreateUserRequest(BaseModel):
 
     username: str = Field(min_length=3, max_length=50)
@@ -35,3 +35,11 @@ class CreateUserByAdmin(BaseModel):
     email: EmailStr
     
     roles: list[str] = Field(default_factory=list)
+    
+class CreateUserByRootUser(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+
+    email: EmailStr
+    
+    organizationId: uuid.UUID
+    

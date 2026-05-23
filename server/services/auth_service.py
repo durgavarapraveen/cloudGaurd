@@ -80,7 +80,7 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
     root_user = False
     print("User Roles:", [role.name for role in user.roles])  # Debugging line
     for role in user.roles:
-        if role.name == "rootUser":
+        if role.name == "rootUserOrg":
             root_user = True
             break
         
@@ -129,23 +129,30 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         )
     )
     
-    users = user.scalar_one_or_none()
+    user = user.scalar_one_or_none()
+    print(user)
     
-    if not users:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    root_user = False
+    for role in user.roles:
+        if role.name == "rootUserOrg":
+            root_user = True
+            break
     
     permissions = []
     
-    for role in users.roles:
+    for role in user.roles:
         for perm in role.permissions:
             permissions.append(perm.name)
 
-    new_access_token = create_access_token(str(users.id), str(users.organization_id), secret_key)
-    new_refresh_token = create_refresh_token(str(users.id), secret_key)
+    new_access_token = create_access_token(str(user.id), str(user.organization_id), secret_key, root_user )
+    new_refresh_token = create_refresh_token(str(user.id), secret_key)
     return {
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
-        "user_id": str(users.id),
+        "user_id": str(user.id),
         "permissions": permissions,
         "message": "Token refreshed successfully"
     }

@@ -14,17 +14,8 @@ import {
 
 import Link from "next/link";
 
-type CloudAccount = {
-  id: string;
-  provider: string;
-  account_identifier: string;
-  account_name: string;
-  region?: string;
-  status?: string;
-  last_scan?: string;
-};
-
 import { cloudAccounts } from "@/lib/api";
+import { CloudAccount } from "@/lib/props";
 
 export default function Page() {
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
@@ -35,7 +26,7 @@ export default function Page() {
     try {
       setLoading(true);
       const res = await cloudAccounts.getAllAccounts();
-      console.log(res);
+
       setAccounts(res || []);
     } catch (error) {
       console.error(error);

@@ -1,13 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  awsApi,
-  dashboardApi,
-  DashboardScan,
-  DashboardScanDetail,
-  ScanResult,
-} from "@/lib/api";
+import { dashboardApi } from "@/lib/api";
 import ScoreGauge from "@/components/Scoregauge";
 import MetricCard from "@/components/MetricCard";
 import SeverityBar from "@/components/SeverityBadge";
@@ -17,8 +11,11 @@ import { getErrorMessage } from "@/lib/errors";
 import { ScanHistory } from "@/components/ScanHistory";
 import { Meta } from "@/components/Meta";
 import { ScanDetailPanel } from "@/components/ScanDetailPanel";
+import { DashboardScan, DashboardScanDetail, ScanResult } from "@/lib/props";
+import PathName from "@/components/PathName";
 
 export default function DashboardPage() {
+  const accountIdentifier = PathName();
   const [data, setData] = useState<ScanResult | null>(null);
   const [scanHistory, setScanHistory] = useState<DashboardScan[]>([]);
   const [selectedScan, setSelectedScan] = useState<DashboardScanDetail | null>(
@@ -33,9 +30,8 @@ export default function DashboardPage() {
   const loadScanHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const result = await dashboardApi.recentScans(100);
+      const result = await dashboardApi.recentScans(100, accountIdentifier);
       setScanHistory(result.scans ?? []);
-      console.log(result);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to load scan history"));
     } finally {
@@ -51,7 +47,8 @@ export default function DashboardPage() {
     setScanning(true);
     setError(null);
     try {
-      const result = await awsApi.scan();
+      const result = await dashboardApi.scan(accountIdentifier);
+      console.log(result);
       setData(result);
       await loadScanHistory();
       setTab("overview");
@@ -68,7 +65,6 @@ export default function DashboardPage() {
     try {
       const result = await dashboardApi.scanDetails(scanId);
       setSelectedScan(result);
-      console.log(result);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to load scan details"));
     } finally {

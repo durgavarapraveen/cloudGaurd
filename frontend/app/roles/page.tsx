@@ -12,8 +12,9 @@ import {
   X,
 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
-import { Role, Permission, RolesPermissions } from "@/lib/api";
+import { RolesPermissions } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { Permission, Role } from "@/lib/props";
 
 export default function RolesPermissionsPage() {
   const [roles, setRoles] = useState<Role[]>([]);

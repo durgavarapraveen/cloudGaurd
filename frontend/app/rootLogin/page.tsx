@@ -3,12 +3,11 @@
 import { FormEvent, useState } from "react";
 import { rootUserAuthApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { encodeSessionForHandoff, saveSession } from "@/lib/session";
+import { saveSession } from "@/lib/session";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [organizationID, SetOrganizationID] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +20,9 @@ export default function LoginPage() {
         username: email,
         password: password,
       };
-      const session = await rootUserAuthApi.login(data, organizationID);
-      console.log(session);
+      const session = await rootUserAuthApi.login(data);
       saveSession(session);
-      // router.push("/profile");
-      const slug = session?.slug;
-      const sessionHash = encodeSessionForHandoff(session);
-      window.location.href = `http://${slug}.localhost:3000/#session=${sessionHash}`;
+      window.location.href = `/admin/organization`;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Login failed"));
     } finally {
@@ -100,19 +95,6 @@ export default function LoginPage() {
               required
               className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-emerald-500/50"
               placeholder="Minimum 8 characters"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-[11px] text-slate-500 uppercase tracking-widest">
-              Organization ID
-            </span>
-            <input
-              value={organizationID}
-              onChange={(event) => SetOrganizationID(event.target.value)}
-              required
-              className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-emerald-500/50"
-              placeholder="you@company.com"
             />
           </label>
 

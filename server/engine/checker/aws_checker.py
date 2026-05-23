@@ -282,8 +282,7 @@ def run_check(resource, rule):
     )
 
 
-def _make_finding(resource, rule, status,
-                  actual_value=None, expected_value=None, operator=None):
+def _make_finding(resource, rule, status, actual_value=None, expected_value=None, operator=None):
     """
     Builds the standardised finding dict returned by run_check().
     Centralised here so the shape is always consistent.
@@ -295,6 +294,7 @@ def _make_finding(resource, rule, status,
         "service":        rule.get("service"),
         "resource_type":  resource.get("resource_type"),
         "resource_id":    resource.get("resource_id"),
+        "resource_identifier": resource.get("resource_identifier"),
         "resource_name":  resource.get("resource_name"),
         "region":         resource.get("region"),
         "status":         status.value,
@@ -340,17 +340,17 @@ async def run_checks(all_resources, all_rules):
         }
     """
     # Normalise input — handle both flat list and nested dict from collect_all()
-    flat_resources = _flatten_resources(all_resources)
+    # flat_resources = _flatten_resources(all_resources)
 
     findings = []
-    for resource in flat_resources:
+    for resource in all_resources:
         resource_type = resource.get("resource_type")
 
         # Only run rules whose resource_type matches this resource
-        matching_rules = [
-            r for r in all_rules
-            if r.get("resource_type") == resource_type
-        ]
+        matching_rules=[]
+        for r in all_rules:
+            if r.get("resource_type") == resource_type:
+                matching_rules.append(r)
         
 
         for rule in matching_rules:
@@ -373,33 +373,6 @@ async def run_checks(all_resources, all_rules):
     # )
 
     return {"findings": findings, "summary": summary}
-
-
-def _flatten_resources(resources):
-    """
-    Accepts either:
-      - a flat list  : [resource, resource, ...]
-      - a nested dict: {"s3": [...], "ec2": [...], "resources": {"s3": [...]}}
-        (the shape returned by aws_collector.collect_all())
-
-    Always returns a flat list.
-    """
-    if isinstance(resources, list):
-        return resources
-
-    if isinstance(resources, dict):
-        # collect_all() returns {"resources": {"s3": [], "ec2": []}, ...}
-        if "resources" in resources:
-            resources = resources["resources"]
-
-        flat = []
-        for service_resources in resources.values():
-            if isinstance(service_resources, list):
-                flat.extend(service_resources)
-        return flat
-
-    # logger.warning(f"[checker] Unexpected resources type: {type(resources)}")
-    return []
 
 
 def _build_summary(findings):
@@ -425,7 +398,7 @@ def _build_summary(findings):
 
     # Total checks (pass + fail) per service
     all_service_counts = Counter(f["service"] for f in findings
-                                 if f["status"] != Status.SKIP.value)
+    if f["status"] != Status.SKIP.value)
 
     return {
         "total":        len(findings),

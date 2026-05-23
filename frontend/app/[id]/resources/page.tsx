@@ -11,10 +11,11 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { awsScannerApi, ResourceSummaryResponse } from "@/lib/api";
+import { awsScannerApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import PathName from "@/components/PathName";
 import { useRouter } from "next/navigation";
+import { ResourceSummaryResponse } from "@/lib/props";
 
 interface CloudResource {
   resource_id?: string;
@@ -148,8 +149,6 @@ export default function ResourcesPage() {
         account_identifier: path,
       })) as ResourceScanResult;
 
-      console.log(result);
-
       const firstReturnedService = Object.keys(result.resources ?? {})[0];
       if (firstReturnedService) {
         setService(firstReturnedService);
@@ -170,8 +169,8 @@ export default function ResourcesPage() {
     const res = await awsScannerApi.fetch_resources_summary({
       account_identifier: path,
     });
-    console.log(res);
     setData(res);
+    console.log(res)
   };
   useEffect(() => {
     fetch();

@@ -48,7 +48,7 @@ class Findings(Base):
     #     ForeignKey("policies.id"),
     #     nullable=True
     # )
-
+    
     resource_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("resources.id"),
@@ -61,10 +61,10 @@ class Findings(Base):
         nullable=True
     )
 
-    provider: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False
-    )
+    # provider: Mapped[str] = mapped_column(
+    #     String(50),
+    #     nullable=False
+    # )
 
     service: Mapped[str] = mapped_column(
         String(100),

@@ -1,4 +1,4 @@
-import { CloudInventoryResource } from "@/lib/api";
+import { CloudInventoryResource } from "@/lib/props";
 import { formatDate } from "./formatDate";
 import { useState } from "react";
 

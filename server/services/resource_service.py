@@ -60,8 +60,6 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     
     provider = cloudAccount.provider
     
-    print("Cloud Account Provider: ", provider)
-    
     if provider != "aws":
         raise HTTPException(
             status_code=400,
@@ -105,16 +103,19 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     db.add(summary)
     await db.flush()
     
-    existing_resources = await get_all_resources_from_DB_service(db, account_identifier=account_identifier, request=request) 
+    existing_resources = await get_all_resource(db, account_identifier=account_identifier,cloud_account_id=cloudAccount.id ,request=request) 
     
-    existing_map = {
-        (
-            r.resource_id,
-            r.region,
-            r.service
-        ): r
-        for r in existing_resources
-    }
+    existing_map = {}
+    
+    if existing_resources:
+        existing_map = {
+            (
+                r.resource_id,
+                r.region,
+                r.service
+            ): r
+            for r in existing_resources
+        }
     
     updated_resource = []
     new_resources = []
@@ -231,4 +232,15 @@ async def get_resource_detail_for_summary_Service(
         request=request,
     )
     
+async def get_all_resource(db: AsyncSession, account_identifier=str,cloud_account_id=UUID, request=Request):
+    organization_id = get_request_organization_id(request)
+    query = await db.execute(
+        select(Resources)
+        .where(
+            Resources.cloud_account_id == cloud_account_id,
+            Resources.organization_id == organization_id
+        )
+    )
+    resources = query.scalars().all()
+    return resources
     

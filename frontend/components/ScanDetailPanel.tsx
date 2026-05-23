@@ -1,10 +1,10 @@
-import { DashboardScanDetail } from "@/lib/api";
 import { useState } from "react";
 import { formatDate } from "./formatDate";
 import { MiniStat } from "./MiniStat";
 import { getScore } from "./GetScore";
 import FindingsTable from "./FindingsTable";
 import { InventoryTable } from "./InventoryTable";
+import { DashboardScanDetail } from "@/lib/props";
 
 export function ScanDetailPanel({
   detail,
@@ -15,6 +15,7 @@ export function ScanDetailPanel({
   loading: boolean;
   onClose: () => void;
 }) {
+  console.log(detail);
   const [view, setView] = useState<"findings" | "inventory">("findings");
   const [service, setService] = useState<string>("ALL");
   const inventory = detail?.inventory ?? [];

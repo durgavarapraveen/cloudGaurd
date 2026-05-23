@@ -12,7 +12,7 @@ import {
   Tag,
 } from "lucide-react";
 import { awsScannerApi } from "@/lib/api";
-import type { ResourceItem, ResourceSummaryResponse } from "@/lib/api";
+import { ResourceItem, ResourceSummaryResponse } from "@/lib/props";
 
 function groupByService(resources: ResourceItem[]) {
   return resources.reduce<Record<string, ResourceItem[]>>((acc, r) => {
@@ -292,7 +292,7 @@ export default function ResourceSummary() {
         title="Updated resources"
         subtitle="Resources whose configuration changed"
         count={data.updated_resources_count}
-        resources={data.updated_resources_ids ?? []}
+        resources={data.updated_resource_ids ?? []}
         type="updated"
         summaryId={resourceSummaryID}
       />
@@ -301,7 +301,7 @@ export default function ResourceSummary() {
         title="Newly added resources"
         subtitle="Newly discovered cloud resources"
         count={data.newly_added_resources_count}
-        resources={data.newly_added_resources_ids ?? []}
+        resources={data.newly_added_resource_ids ?? []}
         type="added"
         summaryId={resourceSummaryID}
       />

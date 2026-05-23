@@ -2,13 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  yamlApi,
-  awsServices,
-  azureServices,
-  googleCloudServices,
-} from "@/lib/api";
+import { yamlApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { awsServices, azureServices, googleCloudServices } from "@/lib/props";
 
 // ── Build the provider → services map from your existing api.ts exports ──
 const providerOptions = [

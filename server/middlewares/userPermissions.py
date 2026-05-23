@@ -24,6 +24,11 @@ def require_permission(permission: str):
             getattr(request.state, "organizationId", None)
             or getattr(request.state, "organizationID", None)
         )
+        
+        privilege = request.state.privilege
+        print(privilege)
+        if privilege == "rootUser":
+            return True
 
         if slug and slug not in {"localhost", "127", "127.0.0.1"}:
             if slug in organization_Id:
@@ -50,12 +55,10 @@ def require_permission(permission: str):
 
         request.state.organizationId = orgId
         request.state.organizationID = orgId
-
-        privilege = request.state.privilege
         
         print(f"User Privilege: {privilege}")
 
-        if privilege == "rootUser":
+        if privilege == "rootUser" or privilege == "rootUserOrg":
             return True
 
         user_id = request.state.user_id

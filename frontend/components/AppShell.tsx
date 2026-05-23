@@ -215,26 +215,25 @@ export default function AppShell({ children }: AppShellProps) {
     setReady(true); // ✅ mark as ready after client hydration
   }, []);
 
-  // ✅ Only redirect AFTER client is ready — never on first render
-  useEffect(() => {
-    if (!ready) return;
-    if (!isPublicRoute && !isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [ready, isPublicRoute, isAuthenticated, router]);
+  // useEffect(() => {
+  //   if (!ready) return;
+  //   if (!isPublicRoute && !isAuthenticated) {
+  // router.replace("/login");
+  // }
+  // }, [ready, isPublicRoute, isAuthenticated, router]);
 
   // ✅ Show nothing until client is ready (prevents flash)
-  if (!ready) {
-    return <main className="flex-1 min-h-screen">{children}</main>;
-  }
+  // if (!ready) {
+  //   return <main className="flex-1 min-h-screen">{children}</main>;
+  // }
 
-  if (isPublicRoute) {
-    return <main className="flex-1 min-h-screen">{children}</main>;
-  }
+  // if (isPublicRoute) {
+  //   return <main className="flex-1 min-h-screen">{children}</main>;
+  // }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  // if (!isAuthenticated) {
+  //   return null;
+  // }
 
   return (
     <>

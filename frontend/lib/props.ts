@@ -1,0 +1,329 @@
+export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+export type Status = "PASS" | "FAIL" | "ERROR" | "SKIP";
+
+export const awsServices = [
+  "EC2",
+  "S3",
+  "IAM",
+  "RDS",
+  "Lambda",
+  "VPC",
+  "CloudTrail",
+  "CloudWatch",
+  "EKS",
+  "ECS",
+  "EBS",
+  "EFS",
+  "ACM",
+  "RAM",
+  "PrivateLink",
+  "KMS",
+  "ECR",
+  "Elasticache",
+  "Route53",
+  "TransitGateway",
+] as const;
+
+export const azureServices = [
+  "Virtual Machines",
+  "Storage Accounts",
+  "Azure Active Directory",
+  "SQL Database",
+  "Functions",
+  "Virtual Network",
+  "Monitor",
+] as const;
+
+export const googleCloudServices = [
+  "Compute Engine",
+  "Cloud Storage",
+  "Identity and Access Management",
+  "Cloud SQL",
+  "Cloud Functions",
+  "Virtual Private Cloud",
+  "Cloud Logging",
+] as const;
+
+export interface Finding {
+  rule_id: string;
+  rule_title: string;
+  severity: Severity;
+  service: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string;
+  region: string;
+  status: Status;
+  actual_value: string | null;
+  expected_value: string | null;
+  operator: string;
+  remediation: string;
+  source_file: string;
+  checked_at: string;
+}
+
+export interface Summary {
+  score: number;
+  total: number;
+  passed: number;
+  failed: number;
+  errored: number;
+  by_severity: Record<Severity, number>;
+  by_service: Record<string, number>;
+}
+
+export interface ScanResult {
+  findings: Finding[];
+  summary: Summary;
+  scan_metadata?: {
+    account_id: string;
+    regions: string[];
+    scanned_at: string;
+  };
+}
+
+export interface DashboardScan {
+  id: string;
+  cloud_account_id: string;
+  account_id: string | null;
+  account_name: string | null;
+  provider: string | null;
+  scan_status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  scan_duration_seconds: number | null;
+  regions_scanned: string[];
+  services_scanned: string[];
+  scan_metadata: Record<string, unknown>;
+  total_resources: number;
+  total_checks: number;
+  total_passed: number;
+  total_failed: number;
+  total_warning: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  info_count: number;
+  created_at: string | null;
+}
+
+export interface DashboardScansResponse {
+  success: boolean;
+  count: number;
+  scans: DashboardScan[];
+}
+
+export interface CloudInventoryResource {
+  id: string;
+  cloud_account_id: string | null;
+  provider: string;
+  service: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string | null;
+  arn: string | null;
+  region: string | null;
+  tags: Record<string, unknown>;
+  configuration: Record<string, unknown>;
+  first_seen: string | null;
+  last_seen: string | null;
+}
+
+export interface DashboardScanDetail {
+  success: boolean;
+  scan: DashboardScan;
+  findings: Finding[];
+  inventory: CloudInventoryResource[];
+  inventory_by_service: Record<string, CloudInventoryResource[]>;
+  counts: {
+    findings: number;
+    inventory: number;
+  };
+}
+
+export interface Rule {
+  _id: string;
+  id: string;
+  title: string;
+  severity: Severity;
+  service: string;
+  provider?: string;
+  resource_type: string;
+  description?: string;
+  remediation?: string;
+  cis_reference?: string;
+  _source_file?: string;
+  check: {
+    path: string;
+    operator: string;
+    value?: string;
+  };
+}
+
+export interface PoliciesResponse {
+  success: boolean;
+  total: number;
+  rules: Rule[];
+}
+
+export interface PolicySummary {
+  total_rules: number;
+  by_service: Record<string, number>;
+  by_severity: Record<string, number>;
+  by_file: Record<string, number>;
+}
+
+export interface CreateUserPayload {
+  username: string;
+  email: string;
+  password?: string;
+  roles?: string[];
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RootLoginPayload {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user_id: string;
+  permissions: string[];
+  message: string;
+}
+
+export interface RootLoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user_id: string;
+  userId?: string;
+  permissions: string[];
+  message: string;
+  slug: string;
+}
+
+export interface UserProfile {
+  id?: string;
+  user_id: string;
+  username: string;
+  email: string;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  roles?: Array<string | { name: string }>;
+  created_at?: string;
+}
+
+export interface ScannerResource {
+  resource_id?: string;
+  resource_name?: string;
+  region?: string;
+  [key: string]: unknown;
+}
+
+export interface ScannerResult {
+  resources?: Record<string, ScannerResource[]>;
+  summary?: {
+    total_resources: number;
+    by_service?: Record<string, number>;
+  };
+}
+
+export interface UserRolesResponse {
+  roles: string[];
+}
+
+export interface ApiMessageResponse {
+  message?: string;
+  success?: boolean;
+}
+
+export interface Roles {
+  role_id: string;
+  name: string;
+  permissions?: Array<string>;
+  is_deleted: boolean;
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+}
+
+export interface Role {
+  role_id: string;
+  name: string;
+  permissions: string[];
+}
+
+export interface CreateCloudAccount {
+  provider: string;
+  account_name: string;
+  account_identifier: string;
+  credentials: Record<string, string>;
+}
+
+export type CloudAccount = {
+  id: string;
+  provider: string;
+  account_identifier: string;
+  account_name: string;
+  region?: string;
+  status?: string;
+  last_scan?: string;
+};
+
+export type ResourceItem = {
+  service: string;
+  resource_id: string;
+};
+
+export interface ResourceSummaryResponse {
+  cloud_account_id: string;
+  fetched_date: string;
+  id: string;
+  newly_added_resources_count: number;
+  organization_id: string;
+  provider: string;
+  total_resources_fetched_count: number;
+  updated_resources_count: number;
+  updated_resource_ids: ResourceItem[];
+  newly_added_resource_ids: ResourceItem[];
+}
+
+export interface ResourceDetailResponse {
+  id: string;
+  service: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string | null;
+  arn: string | null;
+  region: string | null;
+  tags: Record<string, unknown>;
+  configuration: Record<string, unknown>;
+}
+
+export type PaginationMeta = {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
+export interface CreateUserbyRootUser {
+  username: string;
+  email: string;
+  organizationId: string;
+}
+
+export interface createOrganization {
+  name: string;
+  slug: string;
+  description: string;
+}

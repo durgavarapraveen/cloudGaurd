@@ -25,345 +25,55 @@ import {
   REFRESH_TOKEN_KEY,
   USER_ID_KEY,
 } from "./session-keys";
+import {
+  ApiMessageResponse,
+  CreateCloudAccount,
+  createOrganization,
+  CreateUserbyRootUser,
+  CreateUserPayload,
+  DashboardScanDetail,
+  DashboardScansResponse,
+  Finding,
+  LoginPayload,
+  LoginResponse,
+  PaginationMeta,
+  Permission,
+  PoliciesResponse,
+  PolicySummary,
+  ResourceDetailResponse,
+  ResourceSummaryResponse,
+  Role,
+  Roles,
+  RootLoginPayload,
+  RootLoginResponse,
+  ScannerResult,
+  ScanResult,
+  Summary,
+  UserProfile,
+  UserRolesResponse,
+} from "./props";
+import { Rule } from "postcss";
 
 // ─── Types ────────────────────────────────────────────────────
-
-export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
-export type Status = "PASS" | "FAIL" | "ERROR" | "SKIP";
-
-export const awsServices = [
-  "EC2",
-  "S3",
-  "IAM",
-  "RDS",
-  "Lambda",
-  "VPC",
-  "CloudTrail",
-  "CloudWatch",
-  "EKS",
-  "ECS",
-  "EBS",
-  "EFS",
-  "ACM",
-  "RAM",
-  "PrivateLink",
-  "KMS",
-  "ECR",
-  "Elasticache",
-  "Route53",
-  "TransitGateway",
-] as const;
-
-export const azureServices = [
-  "Virtual Machines",
-  "Storage Accounts",
-  "Azure Active Directory",
-  "SQL Database",
-  "Functions",
-  "Virtual Network",
-  "Monitor",
-] as const;
-
-export const googleCloudServices = [
-  "Compute Engine",
-  "Cloud Storage",
-  "Identity and Access Management",
-  "Cloud SQL",
-  "Cloud Functions",
-  "Virtual Private Cloud",
-  "Cloud Logging",
-] as const;
-
-export interface Finding {
-  rule_id: string;
-  rule_title: string;
-  severity: Severity;
-  service: string;
-  resource_type: string;
-  resource_id: string;
-  resource_name: string;
-  region: string;
-  status: Status;
-  actual_value: string | null;
-  expected_value: string | null;
-  operator: string;
-  remediation: string;
-  source_file: string;
-  checked_at: string;
-}
-
-export interface Summary {
-  score: number;
-  total: number;
-  passed: number;
-  failed: number;
-  errored: number;
-  by_severity: Record<Severity, number>;
-  by_service: Record<string, number>;
-}
-
-export interface ScanResult {
-  findings: Finding[];
-  summary: Summary;
-  scan_metadata?: {
-    account_id: string;
-    regions: string[];
-    scanned_at: string;
-  };
-}
-
-export interface DashboardScan {
-  id: string;
-  cloud_account_id: string;
-  account_id: string | null;
-  account_name: string | null;
-  provider: string | null;
-  scan_status: string;
-  started_at: string | null;
-  completed_at: string | null;
-  scan_duration_seconds: number | null;
-  regions_scanned: string[];
-  services_scanned: string[];
-  scan_metadata: Record<string, unknown>;
-  total_resources: number;
-  total_checks: number;
-  total_passed: number;
-  total_failed: number;
-  total_warning: number;
-  critical_count: number;
-  high_count: number;
-  medium_count: number;
-  low_count: number;
-  info_count: number;
-  created_at: string | null;
-}
-
-export interface DashboardScansResponse {
-  success: boolean;
-  count: number;
-  scans: DashboardScan[];
-}
-
-export interface CloudInventoryResource {
-  id: string;
-  cloud_account_id: string | null;
-  provider: string;
-  service: string;
-  resource_type: string;
-  resource_id: string;
-  resource_name: string | null;
-  arn: string | null;
-  region: string | null;
-  tags: Record<string, unknown>;
-  configuration: Record<string, unknown>;
-  first_seen: string | null;
-  last_seen: string | null;
-}
-
-export interface DashboardScanDetail {
-  success: boolean;
-  scan: DashboardScan;
-  findings: Finding[];
-  inventory: CloudInventoryResource[];
-  inventory_by_service: Record<string, CloudInventoryResource[]>;
-  counts: {
-    findings: number;
-    inventory: number;
-  };
-}
-
-export interface Rule {
-  _id: string;
-  id: string;
-  title: string;
-  severity: Severity;
-  service: string;
-  provider?: string;
-  resource_type: string;
-  description?: string;
-  remediation?: string;
-  cis_reference?: string;
-  _source_file?: string;
-  check: {
-    path: string;
-    operator: string;
-    value?: string;
-  };
-}
-
-export interface PoliciesResponse {
-  success: boolean;
-  total: number;
-  rules: Rule[];
-}
-
-export interface PolicySummary {
-  total_rules: number;
-  by_service: Record<string, number>;
-  by_severity: Record<string, number>;
-  by_file: Record<string, number>;
-}
-
-export interface CreateUserPayload {
-  username: string;
-  email: string;
-  password?: string;
-  roles?: string[];
-}
-
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-export interface RootLoginPayload {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user_id: string;
-  permissions: string[];
-  message: string;
-}
-
-export interface RootLoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user_id: string;
-  userId?: string;
-  permissions: string[];
-  message: string;
-  slug: string;
-}
-
-export interface UserProfile {
-  id?: string;
-  user_id: string;
-  username: string;
-  email: string;
-  is_active?: boolean;
-  is_deleted?: boolean;
-  roles?: Array<string | { name: string }>;
-  created_at?: string;
-}
-
-export interface ScannerResource {
-  resource_id?: string;
-  resource_name?: string;
-  region?: string;
-  [key: string]: unknown;
-}
-
-export interface ScannerResult {
-  resources?: Record<string, ScannerResource[]>;
-  summary?: {
-    total_resources: number;
-    by_service?: Record<string, number>;
-  };
-}
-
-export interface UserRolesResponse {
-  roles: string[];
-}
-
-export interface ApiMessageResponse {
-  message?: string;
-  success?: boolean;
-}
-
-export interface Roles {
-  role_id: string;
-  name: string;
-  permissions?: Array<string>;
-  is_deleted: boolean;
-}
-
-export interface Permission {
-  id: string;
-  name: string;
-}
-
-export interface Role {
-  role_id: string;
-  name: string;
-  permissions: string[];
-}
-
-export interface CreateCloudAccount {
-  provider: string;
-  account_name: string;
-  account_identifier: string;
-  credentials: Record<string, string>;
-}
-
-export type ResourceItem = {
-  service: string;
-  resource_id: string;
-};
-
-export interface ResourceSummaryResponse {
-  cloud_account_id: string;
-  fetched_date: string;
-  id: string;
-  newly_added_resources_count: number;
-  organization_id: string;
-  provider: string;
-  total_resources_fetched_count: number;
-  updated_resources_count: number;
-  updated_resources_ids: ResourceItem[];
-  newly_added_resources_ids: ResourceItem[];
-}
-
-// interface RawResourceSummaryResponse extends Omit<
-//   ResourceSummaryResponse,
-//   "updated_resource_ids" | "newly_added_resource_ids"
-// > {
-//   updated_resources_ids?: ResourceItem[];
-//   newly_added_resources_ids?: ResourceItem[];
-//   updated_resource_ids?: ResourceItem[];
-//   newly_added_resource_ids?: ResourceItem[];
-// }
-
-export interface ResourceDetailResponse {
-  id: string;
-  service: string;
-  resource_type: string;
-  resource_id: string;
-  resource_name: string | null;
-  arn: string | null;
-  region: string | null;
-  tags: Record<string, unknown>;
-  configuration: Record<string, unknown>;
-}
 
 function normalizeResourceSummary(
   summary: ResourceSummaryResponse,
 ): ResourceSummaryResponse {
   return {
     ...summary,
-    updated_resources_ids:
-      summary.updated_resources_ids ?? summary.updated_resources_ids ?? [],
-    newly_added_resources_ids:
-      summary.newly_added_resources_ids ??
-      summary.newly_added_resources_ids ??
+    updated_resource_ids:
+      summary.updated_resource_ids ?? summary.updated_resource_ids ?? [],
+    newly_added_resource_ids:
+      summary.newly_added_resource_ids ??
+      summary.newly_added_resource_ids ??
       [],
   };
 }
 
-export type PaginationMeta = {
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
-};
-
 function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
 
-  const token = window.localStorage.getItem("cloudguard_access_token");
+  const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
   const headers: Record<string, string> = {};
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -431,6 +141,7 @@ async function refreshAccessToken(): Promise<LoginResponse> {
   });
 
   if (!res.ok) {
+    clearStoredSession();
     throw new Error(await parseApiError(res, "Session expired"));
   }
 
@@ -457,7 +168,6 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   } catch {
     throw new Error(`Could not connect to backend at ${BASE}`);
   }
-
   if (res.status !== 401) {
     return res;
   }
@@ -479,6 +189,44 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   });
 }
 
+async function apiFetchRootUser(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
+  const requestInit = {
+    ...init,
+    headers: {
+      ...(init.headers as Record<string, string> | undefined),
+      ...authHeaders(),
+    },
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(input, requestInit);
+  } catch {
+    throw new Error(`Could not connect to backend at ${BASE}`);
+  }
+  if (res.status !== 401) {
+    return res;
+  }
+
+  try {
+    await refreshAccessToken();
+  } catch (error) {
+    clearStoredSession();
+    throw error;
+  }
+
+  return fetch(input, {
+    ...requestInit,
+    headers: {
+      ...requestInit.headers,
+      ...authHeaders(),
+    },
+  });
+}
+
 async function parseApiError(res: Response, fallback: string) {
   try {
     const body = await res.json();
@@ -489,11 +237,8 @@ async function parseApiError(res: Response, fallback: string) {
 }
 
 export const rootUserAuthApi = {
-  login: async (
-    payload: RootLoginPayload,
-    organizationID: string,
-  ): Promise<RootLoginResponse> => {
-    const res = await fetch(`${BASE}/root_user/login/${organizationID}`, {
+  login: async (payload: RootLoginPayload): Promise<RootLoginResponse> => {
+    const res = await fetch(`${BASE}/root_user/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -513,6 +258,72 @@ export const rootUserAuthApi = {
     const res = await apiFetch(`${BASE}/auth/logout/${userId}`, {
       method: "PUT",
       headers: authHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+};
+
+export const rootUserAPI = {
+  organization: async (userId: string) => {
+    const res = await apiFetchRootUser(
+      `${BASE}/root_user/organizations/${userId}`,
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  allUsers: async (organizationId: string) => {
+    const res = await apiFetchRootUser(
+      `${BASE}/root_user/allUsers/${organizationId}`,
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  create_user: async (data: CreateUserbyRootUser) => {
+    const res = await apiFetchRootUser(`${BASE}/root_user/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  delete_user: async (userId: string) => {
+    const res = await apiFetchRootUser(`${BASE}/root_user/delete/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  create_organization: async (data: createOrganization, userId: string) => {
+    const res = await fetch(`${BASE}/root_user/create/organization/${userId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify(data),
     });
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Logout failed"));
@@ -597,7 +408,7 @@ export const UsersProfile = {
     return res.json();
   },
 
-  allRoles: async (): Promise<[Roles]> => {
+  allRoles: async (): Promise<Roles[]> => {
     const res = await apiFetch(`${BASE}/roles`, {
       headers: authHeaders(),
     });
@@ -821,102 +632,15 @@ export const RolesPermissions = {
   },
 };
 
-// ─── AWS Validator  /aws/* ─────────────────────────────────────
-export const awsApi = {
-  // Full scan with optional filters — maps to GET /aws/scan
-  scan: async (
-    account_uuid?: string,
-    params?: {
-      regions?: string[];
-      services?: string[];
-      severities?: string[];
-    },
-  ): Promise<ScanResult> => {
-    const url = backendSearchUrl(`/aws/scan`);
-    if (params?.regions)
-      params.regions.forEach((r) => url.searchParams.append("regions", r));
-    if (params?.services)
-      params.services.forEach((s) => url.searchParams.append("services", s));
-    if (params?.severities)
-      params.severities.forEach((s) =>
-        url.searchParams.append("severities", s),
-      );
-    const res = await apiFetch(url.toString(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders(),
-      },
-      body: JSON.stringify(account_uuid ? { account_uuid } : {}),
-    });
-    if (!res.ok) {
-      throw new Error(await parseApiError(res, "Scan failed"));
-    }
-    const body = await res.json();
-    if (body?.success === false) {
-      throw new Error(body.error ?? "Scan failed");
-    }
-    return body;
-  },
-
-  // Summary only — maps to GET /aws/summary
-  summary: async (regions?: string[]): Promise<{ summary: Summary }> => {
-    const url = backendSearchUrl(`/aws/summary`);
-    regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await apiFetch(url.toString(), {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Summary failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // Failed findings only — maps to GET /aws/failed
-  failed: async (
-    regions?: string[],
-  ): Promise<{ failed_findings: Finding[] }> => {
-    const url = backendSearchUrl(`/aws/failed`);
-    regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await apiFetch(url.toString(), {
-      headers: authHeaders(),
-    });
-    if (!res.ok)
-      throw new Error(`Failed findings fetch failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // Filter by severity — maps to GET /aws/severity/{severity}
-  bySeverity: async (
-    severity: string,
-    regions?: string[],
-  ): Promise<{ severity: string; findings: Finding[] }> => {
-    const url = backendSearchUrl(`/aws/severity/${severity}`);
-    regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await apiFetch(url.toString(), {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Severity filter failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // Filter by service — maps to GET /aws/service/{service}
-  byService: async (
-    service: string,
-    regions?: string[],
-  ): Promise<{ service: string; findings: Finding[] }> => {
-    const url = backendSearchUrl(`/aws/service/${service}`);
-    regions?.forEach((r) => url.searchParams.append("regions", r));
-    const res = await apiFetch(url.toString(), {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Service filter failed: ${res.statusText}`);
-    return res.json();
-  },
-};
-
-// ─── AWS Policies  /aws/policies/* ────────────────────────────
+// ─── Dash Board ────────────────────────────
 export const dashboardApi = {
-  recentScans: async (limit = 100): Promise<DashboardScansResponse> => {
-    const url = backendSearchUrl(`/dashboard/recent-scans`);
+  recentScans: async (
+    limit = 100,
+    accountIdentifier: string,
+  ): Promise<DashboardScansResponse> => {
+    const url = backendSearchUrl(
+      `/dashboard/recent-scans/${accountIdentifier}`,
+    );
     url.searchParams.set("limit", String(limit));
     const res = await apiFetch(url.toString(), {
       headers: authHeaders(),
@@ -936,54 +660,69 @@ export const dashboardApi = {
     }
     return res.json();
   },
-};
 
-export const awsPoliciesApi = {
-  // All rules — maps to GET /aws/policies/
-  all: async (): Promise<PoliciesResponse> => {
-    const res = await apiFetch(`${BASE}/aws/policies/`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Policies fetch failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // Summary — maps to GET /aws/policies/summary
-  summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-    const res = await apiFetch(`${BASE}/aws/policies/summary`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Policy summary failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // By service — maps to GET /aws/policies/service/{service}
-  byService: async (
-    service: string,
-  ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-    const res = await apiFetch(`${BASE}/aws/policies/service/${service}`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok)
-      throw new Error(`Policy service filter failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  // By severity — maps to GET /aws/policies/severity/{severity}
-  bySeverity: async (
-    severity: string,
-  ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-    const res = await apiFetch(`${BASE}/aws/policies/severity/${severity}`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok)
-      throw new Error(`Policy severity filter failed: ${res.statusText}`);
-    return res.json();
+  scan: async (accountIdentifier: string): Promise<ScanResult> => {
+    const url = backendSearchUrl(
+      `/dashboard/scanServices/${accountIdentifier}`,
+    );
+    const res = await apiFetch(url.toString());
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Scan failed"));
+    }
+    const body = await res.json();
+    if (body?.success === false) {
+      throw new Error(body.error ?? "Scan failed");
+    }
+    return body;
   },
 };
+
+// // ─── AWS Policies  /aws/policies/* ────────────────────────────
+// export const awsPoliciesApi = {
+//   // All rules — maps to GET /aws/policies/
+//   all: async (): Promise<PoliciesResponse> => {
+//     const res = await apiFetch(`${BASE}/aws/policies/`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok) throw new Error(`Policies fetch failed: ${res.statusText}`);
+//     return res.json();
+//   },
+
+//   // Summary — maps to GET /aws/policies/summary
+//   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
+//     const res = await apiFetch(`${BASE}/aws/policies/summary`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok) throw new Error(`Policy summary failed: ${res.statusText}`);
+//     return res.json();
+//   },
+
+//   // By service — maps to GET /aws/policies/service/{service}
+//   byService: async (
+//     service: string,
+//   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
+//     const res = await apiFetch(`${BASE}/aws/policies/service/${service}`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok)
+//       throw new Error(`Policy service filter failed: ${res.statusText}`);
+//     return res.json();
+//   },
+
+//   // By severity — maps to GET /aws/policies/severity/{severity}
+//   bySeverity: async (
+//     severity: string,
+//   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
+//     const res = await apiFetch(`${BASE}/aws/policies/severity/${severity}`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok)
+//       throw new Error(`Policy severity filter failed: ${res.statusText}`);
+//     return res.json();
+//   },
+// };
 
 // ─── AWS Scanner  /aws/scanner/* ──────────────────────────────
-
 export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
   scan: async ({
@@ -998,7 +737,6 @@ export const awsScannerApi = {
     }
 
     const serviceParam = services.join(",");
-    console.log(serviceParam);
 
     const res = await apiFetch(
       `${BASE}/resources/resources_cloud/${account_identifier}?services=${serviceParam}`,
@@ -1006,7 +744,6 @@ export const awsScannerApi = {
         headers: authHeaders(),
       },
     );
-    console.log(res);
 
     if (!res.ok) {
       throw new Error(`Scanner failed: ${res.statusText}`);
@@ -1138,30 +875,28 @@ export const awsScannerApi = {
   },
 };
 
-// ─── Azure Policies  /azure/policies/* ───────────────────────
+// // ─── Azure Policies  /azure/policies/* ───────────────────────
+// export const azurePoliciesApi = {
+//   all: async (): Promise<PoliciesResponse> => {
+//     const res = await apiFetch(`${BASE}/azure/policies/`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok)
+//       throw new Error(`Azure policies fetch failed: ${res.statusText}`);
+//     return res.json();
+//   },
 
-export const azurePoliciesApi = {
-  all: async (): Promise<PoliciesResponse> => {
-    const res = await apiFetch(`${BASE}/azure/policies/`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok)
-      throw new Error(`Azure policies fetch failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-    const res = await apiFetch(`${BASE}/azure/policies/summary`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok)
-      throw new Error(`Azure policy summary failed: ${res.statusText}`);
-    return res.json();
-  },
-};
+//   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
+//     const res = await apiFetch(`${BASE}/azure/policies/summary`, {
+//       headers: authHeaders(),
+//     });
+//     if (!res.ok)
+//       throw new Error(`Azure policy summary failed: ${res.statusText}`);
+//     return res.json();
+//   },
+// };
 
 // ─── YAML Policies  /yaml/* ──────────────────────────────
-
 export const yamlApi = {
   getPolicies: async (details: { provider: string | null }): Promise<[]> => {
     let url = `${BASE}/yaml/policies`;

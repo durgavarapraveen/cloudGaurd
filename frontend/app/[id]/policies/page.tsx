@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { yamlApi, Rule } from "@/lib/api";
+import { yamlApi } from "@/lib/api";
 import SeverityBadge from "@/components/SeverityBadge";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/errors";
+import { Rule } from "@/lib/props";
 
 // ── What the /yaml/policies/ endpoint actually returns ──────────
 interface YamlPolicyResource {

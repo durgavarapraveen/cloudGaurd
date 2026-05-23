@@ -1,4 +1,4 @@
-import type { LoginResponse } from "@/lib/api";
+import { LoginResponse } from "./props";
 import {
   ACCESS_TOKEN_KEY,
   PERMISSIONS_KEY,
@@ -66,4 +66,9 @@ export function getPermissions() {
   } catch {
     return [];
   }
+}
+
+export function getRootUserId() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(USER_ID_KEY);
 }

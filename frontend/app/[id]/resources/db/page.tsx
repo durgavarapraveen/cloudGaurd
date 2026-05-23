@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Database, Search, ChevronRight, Server } from "lucide-react";
 import PathName from "@/components/PathName";
 import { awsScannerApi } from "@/lib/api";
+import { PaginationMeta, ResourceDetailResponse } from "@/lib/props";
 
 type Resource = {
   id: string;
@@ -15,13 +16,6 @@ type Resource = {
   resource_type: string;
   configuration: Record<string, unknown>;
   tags: unknown[];
-};
-
-type Pagination = {
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
 };
 
 const SERVICES = ["ec2", "s3", "iam", "rds", "ecs", "ebs", "kms", "ecr"];
@@ -36,8 +30,8 @@ const SERVICE_COLORS: Record<string, string> = {
 
 export default function ResourcesDBPage() {
   const path = PathName();
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [resources, setResources] = useState<ResourceDetailResponse[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -65,7 +59,7 @@ export default function ResourcesDBPage() {
         // build counts on first load
         if (pg === 1 && !svc) {
           const counts: Record<string, number> = {};
-          res.data.forEach((r: Resource) => {
+          res.data.forEach((r: ResourceDetailResponse) => {
             counts[r.service] = (counts[r.service] ?? 0) + 1;
           });
           setServiceCounts(counts);
