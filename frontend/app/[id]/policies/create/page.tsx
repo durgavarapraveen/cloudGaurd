@@ -1,14 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import {
-  yamlApi,
-  awsServices,
-  azureServices,
-  googleCloudServices,
-} from "@/lib/api";
+import { useParams, useRouter } from "next/navigation";
+import { yamlApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { awsServices, azureServices, googleCloudServices } from "@/lib/props";
 
 // ── Build the provider → services map from your existing api.ts exports ──
 const providerOptions = [
@@ -99,6 +95,8 @@ function LineNumbers({ count }: { count: number }) {
 // ── Main page ──────────────────────────────────────────────────
 export default function NewPolicyPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const org = params.id;
 
   const [yaml, setYaml] = useState<string>(YAML_TEMPLATE);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -131,12 +129,12 @@ export default function NewPolicyPage() {
       await yamlApi.createPolicy(selectedProvider, selectedService, yaml);
       setSaveStatus("saved");
       // Navigate back to policies list after a short delay
-      setTimeout(() => router.push("/policies"), 1200);
+      setTimeout(() => router.push(`/${org}/policies`), 1200);
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err, "Failed to create policy"));
       setSaveStatus("error");
     }
-  }, [canSave, selectedProvider, selectedService, yaml, router]);
+  }, [canSave, selectedProvider, selectedService, yaml, org, router]);
 
   // Ctrl+S / Cmd+S shortcut
   useEffect(() => {

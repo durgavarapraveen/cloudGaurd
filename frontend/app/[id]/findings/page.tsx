@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { dashboardApi, DashboardScan, DashboardScanDetail } from "@/lib/api";
+import { dashboardApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { ScanHistory } from "@/components/ScanHistory";
 import { ScanDetailPanel } from "@/components/ScanDetailPanel";
+import { DashboardScan, DashboardScanDetail } from "@/lib/props";
+import PathName from "@/components/PathName";
 
 export default function FindingsPage() {
+  const accountIdentifier = PathName();
   const [error, setError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [scanHistory, setScanHistory] = useState<DashboardScan[]>([]);
@@ -18,9 +21,8 @@ export default function FindingsPage() {
   const loadScanHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const result = await dashboardApi.recentScans(100);
+      const result = await dashboardApi.recentScans(100, accountIdentifier);
       setScanHistory(result.scans ?? []);
-      console.log(result);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to load scan history"));
     } finally {
@@ -34,7 +36,6 @@ export default function FindingsPage() {
     try {
       const result = await dashboardApi.scanDetails(scanId);
       setSelectedScan(result);
-      console.log(result);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to load scan details"));
     } finally {

@@ -1,17 +1,15 @@
 import uuid
 
-from sqlalchemy import String, Boolean, Table, Column, ForeignKey
+from sqlalchemy import String, Boolean, Table, Column, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from uuid6 import uuid7
 from .Base import Base
+from sqlalchemy.sql import func
 
-user_roles = Table(
-    "user_roles",
-    Base.metadata,
-    Column("user_id", UUID(as_uuid=True), ForeignKey("users.id")),
-    Column("role_id", UUID(as_uuid=True), ForeignKey("roles.id"))
-)
+
+
+from .associations import user_roles, userGroup_users
 
 class User(Base):
 
@@ -48,6 +46,20 @@ class User(Base):
         Boolean,
         default=False
     )
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="users",
+    )
 
     roles = relationship(
         "Role",
@@ -55,6 +67,15 @@ class User(Base):
         back_populates="users"
     )
     
-    created_at: Mapped[str] = mapped_column(
-        String
+    groups = relationship(
+        "UserGroups",
+        secondary=userGroup_users,
+        back_populates="users"
     )
+    
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+    
+    

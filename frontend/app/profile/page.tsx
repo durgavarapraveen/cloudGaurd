@@ -13,8 +13,9 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { UsersProfile, UserProfile, CreateUserPayload, Roles } from "@/lib/api";
+import { UsersProfile } from "@/lib/api";
 import toast, { Toaster } from "react-hot-toast";
+import { CreateUserPayload, Roles, UserProfile } from "@/lib/props";
 
 interface EditRolesModalProps {
   user: UserProfile;
@@ -39,7 +40,6 @@ export default function UsersPage() {
     async function fetchUsers() {
       try {
         const data = await UsersProfile.allUsers();
-        console.log(data);
         setUsers(data);
       } catch (e) {
         console.error(e);
@@ -95,15 +95,13 @@ export default function UsersPage() {
           ),
         );
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
 
     setEditRolesOpen(false);
   }
 
   async function handleCreateNewUser(user: CreateUserPayload) {
-    console.log(user);
-
     try {
       const res = await UsersProfile.createUserFromAdmin({
         username: user.username,
@@ -288,18 +286,23 @@ export default function UsersPage() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2 flex-wrap">
                         {user.roles &&
-                          user.roles.map((role: string | { name: string }) => {
-                            const roleName =
-                              typeof role === "string" ? role : role.name;
-                            return (
-                              <span
-                                key={roleName}
-                                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
-                              >
-                                {roleName}
-                              </span>
-                            );
-                          })}
+                          user.roles.map(
+                            (
+                              role: string | { name: string },
+                              index: number,
+                            ) => {
+                              const roleName =
+                                typeof role === "string" ? role : role.name;
+                              return (
+                                <span
+                                  key={`${roleName}-${index}`} // ✅ unique even if roleName repeats
+                                  className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
+                                >
+                                  {roleName}
+                                </span>
+                              );
+                            },
+                          )}
                       </div>
                     </td>
 

@@ -6,22 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from uuid6 import uuid7
 from .Base import Base
 
-role_permissions = Table(
-    "role_permissions",
-    Base.metadata,
-
-    Column(
-        "role_id",
-        UUID(as_uuid=True),
-        ForeignKey("roles.id", ondelete="CASCADE")
-    ),
-
-    Column(
-        "permission_id",
-        UUID(as_uuid=True),
-        ForeignKey("permissions.id", ondelete="CASCADE")
-    )
-)
+from .associations import user_roles, role_permissions
 
 class Role(Base):
 
@@ -35,21 +20,35 @@ class Role(Base):
 
     name: Mapped[str] = mapped_column(
         String(50),
-        unique=True
-    )
-
-    users = relationship(
-        "User",
-        secondary="user_roles",
-        back_populates="roles"
     )
 
     permissions = relationship(
         "Permission",
-        secondary=role_permissions
+        secondary=role_permissions,
+        back_populates="roles"
     )
     
     is_deleted: Mapped[bool] = mapped_column(
         Boolean,
         default=False
+    )
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="roles",
+    )
+
+    users = relationship(
+        "User",
+        secondary=user_roles,
+        back_populates="roles"
     )

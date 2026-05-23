@@ -25,6 +25,7 @@ from sqlalchemy.orm import (
 from uuid6 import uuid7
 
 from .Base import Base
+from sqlalchemy.sql import func
 
 
 class Resources(Base):
@@ -33,6 +34,7 @@ class Resources(Base):
 
     __table_args__ = (
         UniqueConstraint(
+            "organization_id",
             "cloud_account_id",
             "resource_id",
             "region",
@@ -48,7 +50,7 @@ class Resources(Base):
 
     cloud_account_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("cloud_accounts.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -99,16 +101,53 @@ class Resources(Base):
 
     first_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow
+        default=datetime.utcnow,
+        server_default=func.now()
     )
 
     last_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        onupdate=datetime.utcnow,
+        server_default=func.now()
+    )
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    hashValue:  Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="resources",
+    )
+
+    cloud_account = relationship(
+        "CloudAccounts",
+        back_populates="resources",
     )
 
     findings = relationship(
         "Findings",
         back_populates="resource"
+    )
+    
+    resource_summary = relationship(
+        "ResourceSummary",
+        back_populates="resources"
+    )
+    
+    resource_summary_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("resource_summary.id", ondelete="CASCADE"),
+        nullable=False
     )

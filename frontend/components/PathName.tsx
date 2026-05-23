@@ -1,0 +1,7 @@
+import { usePathname } from "next/navigation";
+
+export default function PathName() {
+  const pathname = usePathname();
+  const firstSegment = pathname.split("/").filter(Boolean)[0] ?? "";
+  return firstSegment;
+}

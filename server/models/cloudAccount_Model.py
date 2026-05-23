@@ -23,21 +23,18 @@ from uuid6 import uuid7
 from .Base import Base
 
 
-class Cloud(Base):
+class CloudAccounts(Base):
 
     __tablename__ = "cloud_accounts"
     
     __table_args__ = (
         UniqueConstraint(
+            "organization_id",
             "provider",
             "account_name",
             name="uq_provider_accountName"
         ),
     )
-
-    # =========================
-    # PRIMARY
-    # =========================
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -53,10 +50,6 @@ class Cloud(Base):
         ),
         nullable=True,
     )
-
-    # =========================
-    # CLOUD INFO
-    # =========================
 
     provider: Mapped[str] = mapped_column(
         String,
@@ -159,4 +152,42 @@ class Cloud(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="cloud_accounts",
+    )
+    #1:N
+    scans = relationship(
+        "Scans",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )
+    
+    findings = relationship(
+        "Findings",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )
+    
+    resources = relationship(
+        "Resources",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )
+    
+    resource_summary = relationship(
+        "ResourceSummary",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
     )

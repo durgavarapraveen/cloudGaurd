@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import jwt
 import uuid
+from sqlalchemy import Boolean
 
 
 ALGORITHM = "HS256"
@@ -8,8 +9,9 @@ ALGORITHM = "HS256"
 
 def create_access_token(
     user_id: str,
-    permissions: list[str],
+    organization_id: str,
     secret_key: str,
+    root_user: Boolean,
     expires_in: int = 15
 ) -> str:
 
@@ -18,7 +20,8 @@ def create_access_token(
     payload = {
         "sub": str(user_id),
         "type": "access",
-
+        "organization":str(organization_id),
+        "privilege": "rootUserOrg" if root_user else "user",
         "iat": now,
         "exp": now + timedelta(minutes=expires_in),
 

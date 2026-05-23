@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from scanners.AWS.aws_scanner import collect_all
 from engine.checker.aws_checker import run_checks, Status
 from yaml_loader.yaml_loader import get_policies
-from models.accounts_model import Accounts
 from services.resource_entry_service import add_information_to_database
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -180,28 +179,28 @@ async def resolve_scan_account_id(
 
     parsed_user_id = uuid.UUID(str(user_id))
 
-    result = await db.execute(
-        select(Accounts).where(
-            Accounts.user_id == parsed_user_id,
-            Accounts.provider == "aws",
-            Accounts.account_id == str(account_id)
-        )
-    )
-    account = result.scalar_one_or_none()
+    # result = await db.execute(
+    #     select(Accounts).where(
+    #         Accounts.user_id == parsed_user_id,
+    #         Accounts.provider == "aws",
+    #         Accounts.account_id == str(account_id)
+    #     )
+    # )
+    # account = result.scalar_one_or_none()
 
-    if account:
-        return account.id
+    # if account:
+    #     return account.id
 
-    account = Accounts(
-        user_id=parsed_user_id,
-        provider="aws",
-        account_id=str(account_id),
-        account_name=f"AWS {account_id}"
-    )
-    db.add(account)
-    await db.flush()
+    # account = Accounts(
+    #     user_id=parsed_user_id,
+    #     provider="aws",
+    #     account_id=str(account_id),
+    #     account_name=f"AWS {account_id}"
+    # )
+    # db.add(account)
+    # await db.flush()
 
-    return account.id
+    # return account.id
 
 
 # ──────────────────────────────────────────────

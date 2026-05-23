@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
 from models.rolesModel import Role
 from schemas.roles_schema import CreateRoleRequest
@@ -9,9 +9,12 @@ from models.permission import Permission
 from services.permissions_service import add_permission
 
 
-async def get_all_roles(db: AsyncSession):
+async def get_all_roles(db: AsyncSession, request: Request):
+    organization_id = request.state.organizationId
     result = await db.execute(
-        select(Role).options(selectinload(Role.permissions))  # ✅ eager load
+        select(Role)
+        .where(Role.organization_id == organization_id)
+        .options(selectinload(Role.permissions))  # ✅ eager load
     )
     roles = result.scalars().all()
     return [                                                   # ✅ return dicts
@@ -26,9 +29,11 @@ async def get_all_roles(db: AsyncSession):
     ]
 
 
-async def permission_objects_from_names(db: AsyncSession, permission_names: list[str]):
+async def permission_objects_from_names(db: AsyncSession, permission_names: list[str], request: Request):
+    organization_id = request.state.organizationId
     permission_result = await db.execute(
-        select(Permission).where(Permission.name.in_(permission_names))
+        select(Permission)
+        .where(Permission.name.in_(permission_names) , Permission.organization_id == organization_id)
     )
     permission_objects = permission_result.scalars().all()
 
@@ -44,18 +49,23 @@ async def permission_objects_from_names(db: AsyncSession, permission_names: list
     return permission_result.scalars().all()
 
 
-async def create_role(db: AsyncSession, role_data: CreateRoleRequest):
+async def create_role(db: AsyncSession, role_data: CreateRoleRequest, request: Request):
+    organization_id = request.state.organizationId
     existing_result = await db.execute(
-        select(Role).where(Role.name == role_data.name)
+        select(Role)
+        .where(Role.name == role_data.name , Role.organization_id == organization_id)
     )
     existing = existing_result.scalar_one_or_none()
 
     if existing:
         raise HTTPException(status_code=400, detail="Role with this name already exists")
 
-    permission_objects = await permission_objects_from_names(db, role_data.permissions)
+    permission_objects = await permission_objects_from_names(db, role_data.permissions, request=request)
 
-    new_role = Role(name=role_data.name)
+    new_role = Role(
+        name=role_data.name,
+        organization_id=organization_id
+    )
     new_role.permissions = permission_objects
 
     db.add(new_role)
@@ -76,7 +86,8 @@ async def create_role(db: AsyncSession, role_data: CreateRoleRequest):
     }
 
 
-async def delete_role(db: AsyncSession, role_id: str):
+async def delete_role(db: AsyncSession, role_id: str, request: Request):
+    organization_id = request.state.organizationId
     role = await db.get(Role, role_id)
 
     if not role:
@@ -88,10 +99,11 @@ async def delete_role(db: AsyncSession, role_id: str):
     return {"message": "Role deleted successfully"}
 
 
-async def get_role_by_name(db: AsyncSession, name: str):
+async def get_role_by_name(db: AsyncSession, name: str, request: Request):
+    organization_id = request.state.organizationId
     result = await db.execute(
         select(Role)
-        .where(Role.name == name)
+        .where(Role.name == name , Role.organization_id == organization_id)
         .options(selectinload(Role.permissions))  # ✅ eager load
     )
     role = result.scalar_one_or_none()
@@ -107,16 +119,14 @@ async def get_role_by_name(db: AsyncSession, name: str):
     }
 
 
-async def get_role_by_id(db: AsyncSession, role_id: str):
-    print(f"Roles ID {role_id}")
+async def get_role_by_id(db: AsyncSession, role_id: str, request: Request):
+    organization_id = request.state.organizationId
     result = await db.execute(
         select(Role)
-        .where(Role.id == role_id)
+        .where(Role.id == role_id , Role.organization_id == organization_id)
         .options(selectinload(Role.permissions))  # ✅ eager load
     )
     role = result.scalar_one_or_none()
-    
-    print(f"role details {role.id}, {role.name}")
 
     if role:
         return {
@@ -129,10 +139,11 @@ async def get_role_by_id(db: AsyncSession, role_id: str):
     raise HTTPException(status_code=404, detail="Role not found in Database")
 
 
-async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str], name:str):
+async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: list[str], name:str, request: Request):
+    organization_id = request.state.organizationId
     result = await db.execute(
         select(Role)
-        .where(Role.id == role_id)
+        .where(Role.id == role_id , Role.organization_id == organization_id)
         .options(selectinload(Role.permissions))
     )
     role = result.scalar_one_or_none()
@@ -140,7 +151,7 @@ async def edit_role_permissions(db: AsyncSession, role_id: str, permissions: lis
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
 
-    permission_objects = await permission_objects_from_names(db, permissions)
+    permission_objects = await permission_objects_from_names(db, permissions, request=request)
     role.permissions = permission_objects
     
     role.name = name

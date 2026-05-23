@@ -52,7 +52,7 @@ services_all = ["s3", "iam", "ec2", "rds", "acm", "efs", "ebs", "ram", "privatel
 # MAIN COLLECTOR
 # ─────────────────────────────────────────────
 
-async def collect_all(regions=None, services=None):
+async def collect_all(session, services=None, regions=None):
     """
     Collect AWS resources for requested services.
 
@@ -61,19 +61,16 @@ async def collect_all(regions=None, services=None):
     """
 
     if regions is None:
-        regions = [os.getenv("AWS_DEFAULT_REGION", "ap-south-1")]
+        regions = ["ap-south-1"]
         
     if services is None or "ALL" in services:
         services = services_all
-
-    session = get_session()
     
     # Identity check
     sts = session.client("sts")
     identity = safe_call(sts.get_caller_identity)
     account_id = identity.get("Account") if identity else "unknown"
     
-    # logger.info(f"Scanning account {account_id}")
 
     tasks = []
 
@@ -122,8 +119,6 @@ async def collect_all(regions=None, services=None):
         if "transitGateway" in services:
             tasks.append((f"transitGateway_{region}", scan_transit_gateway, (session, region)))
                 
-        
-
     raw_results = {}
 
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -194,7 +189,6 @@ async def collect_all(regions=None, services=None):
         }
     }
 
-    # logger.info(f"Scan finished : {total} resources")
     return result
 
 def flatten_value(val):

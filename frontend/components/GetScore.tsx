@@ -1,4 +1,4 @@
-import { DashboardScan } from "@/lib/api";
+import { DashboardScan } from "@/lib/props";
 
 export function getScore(scan: DashboardScan) {
   const evaluable = scan.total_passed + scan.total_failed;

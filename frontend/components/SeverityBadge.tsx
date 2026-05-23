@@ -1,4 +1,4 @@
-import { Severity } from "@/lib/api";
+import { Severity } from "@/lib/props";
 
 const config: Record<Severity, { bg: string; text: string; dot: string }> = {
   CRITICAL: {

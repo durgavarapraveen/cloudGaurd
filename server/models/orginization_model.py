@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 
 class Organization(Base):
     
-    __table__ = "organization"
+    __tablename__ = "organization"
     
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -24,7 +24,8 @@ class Organization(Base):
     
     slug: Mapped[str] = mapped_column(
         String(50),
-        nullable=False
+        nullable=False,
+        unique=True
     )
     
     description:  Mapped[str] = mapped_column(
@@ -32,13 +33,13 @@ class Organization(Base):
         nullable=False
     )
     
-    owner_id:  Mapped[str] = mapped_column(
+    owner_id:  Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "rootUsers.id",
             ondelete="SET NULL"
         ),
-        nullable=False,
+        nullable=True,
     )
     
     is_active: Mapped[Boolean] = mapped_column(
@@ -46,7 +47,7 @@ class Organization(Base):
         default=False
     )
     
-    is_delete: Mapped[Boolean] = mapped_column(
+    is_deleted: Mapped[Boolean] = mapped_column(
         Boolean,
         default=False
     )
@@ -62,7 +63,69 @@ class Organization(Base):
         onupdate=func.now(),
     )
     
-    root_users = relationship(
+    owner = relationship(
         "RootUsers",
-        back_populates="organization"
+        back_populates="organization",
+        # uselist=False
     )
+    
+    users = relationship(
+        "User",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    roles = relationship(
+        "Role",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    permissions = relationship(
+        "Permission",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    user_groups = relationship(
+        "UserGroups",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    cloud_accounts = relationship(
+        "CloudAccounts",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    scans = relationship(
+        "Scans",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    findings = relationship(
+        "Findings",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    resources = relationship(
+        "Resources",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    summary = relationship(
+        "Summary",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
+    resource_summary = relationship(
+        "ResourceSummary",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    

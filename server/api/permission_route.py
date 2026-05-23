@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,17 +29,18 @@ router = APIRouter(
 @router.get("/", 
     dependencies=[Depends(require_permission("permissions:read"))]
 )
-async def getAllPermissions(db: AsyncSession = Depends(get_db)):
-    return await get_all_permissions(db)
+async def getAllPermissions( request: Request, db: AsyncSession = Depends(get_db)):
+    return await get_all_permissions(db, request=request)
 
 @router.post("/create",
-            #  dependencies=[Depends(require_permission("permissions:write"))]    
+             dependencies=[Depends(require_permission("permissions:write"))]
             )
 async def createPermission(
     data: CreatePermissionRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    return await add_permission(db, permission_name=data.permission_name)
+    return await add_permission(db, permission_name=data.permission_name, request=request)
 
 @router.delete("/delete/{id}", 
     dependencies=[Depends(require_permission("permissions:delete"))]

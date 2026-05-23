@@ -20,6 +20,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship
 )
+from sqlalchemy.sql import func
 
 from uuid6 import uuid7
 
@@ -47,7 +48,7 @@ class Findings(Base):
     #     ForeignKey("policies.id"),
     #     nullable=True
     # )
-
+    
     resource_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("resources.id"),
@@ -56,14 +57,14 @@ class Findings(Base):
 
     cloud_account_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("cloud_accounts.id", ondelete="SET NULL"),
+        nullable=True
     )
 
-    provider: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False
-    )
+    # provider: Mapped[str] = mapped_column(
+    #     String(50),
+    #     nullable=False
+    # )
 
     service: Mapped[str] = mapped_column(
         String(100),
@@ -139,9 +140,22 @@ class Findings(Base):
         DateTime(timezone=True),
         default=datetime.utcnow
     )
-
-    # Relationships
-
+    
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "organization.id",
+            ondelete="cascade"
+        ),
+        nullable=False
+    )
+    
+    organization = relationship(
+        "Organization",
+        back_populates="findings",
+    )
+    
+    
     scan = relationship(
         "Scans",
         back_populates="findings"
@@ -149,5 +163,10 @@ class Findings(Base):
 
     resource = relationship(
         "Resources",
+        back_populates="findings"
+    )
+    
+    cloud_account = relationship(
+        "CloudAccounts",
         back_populates="findings"
     )

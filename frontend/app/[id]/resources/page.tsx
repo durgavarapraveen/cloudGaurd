@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { awsScannerApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import PathName from "@/components/PathName";
+import { useRouter } from "next/navigation";
+import { ResourceSummaryResponse } from "@/lib/props";
 
 interface CloudResource {
   resource_id?: string;
@@ -94,11 +97,13 @@ const serviceLabels: Record<string, string> = {
 };
 
 export default function ResourcesPage() {
-  const [data, setData] = useState<ResourceScanResult | null>(null);
+  const path = PathName();
+  const router = useRouter();
+  const [data, setData] = useState<ResourceSummaryResponse[] | []>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [service, setService] = useState<string>("s3");
-  const [selected, setSelected] = useState<CloudResource | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<Provider>("AWS");
   const [selectedProviders, setSelectedProviders] = useState<Provider[]>([
@@ -141,6 +146,7 @@ export default function ResourcesPage() {
     try {
       const result = (await awsScannerApi.scan({
         services: selectedAwsServices,
+        account_identifier: path,
       })) as ResourceScanResult;
 
       const firstReturnedService = Object.keys(result.resources ?? {})[0];
@@ -149,8 +155,8 @@ export default function ResourcesPage() {
       } else {
         setService(selectedAwsServices[0] ?? "s3");
       }
-
-      setData(result);
+      fetch();
+      // setData(result);
       setModalOpen(false);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to fetch resources"));
@@ -159,12 +165,14 @@ export default function ResourcesPage() {
     }
   }
 
+  const fetch = async () => {
+    const res = await awsScannerApi.fetch_resources_summary({
+      account_identifier: path,
+    });
+    setData(res);
+    console.log(res)
+  };
   useEffect(() => {
-    const fetch = async () => {
-      const res = await awsScannerApi.fetch_resources_db();
-      console.log(res);
-    };
-
     fetch();
   }, []);
 
@@ -200,7 +208,7 @@ export default function ResourcesPage() {
     setSelectedServices((prev) => ({ ...prev, [provider]: [] }));
   };
 
-  const resources: CloudResource[] = data?.resources?.[service] ?? [];
+  // const resources: CloudResource[] = data?.resources?.[service] ?? [];
 
   async function downloadExcel() {
     if (!canFetch) {
@@ -230,7 +238,7 @@ export default function ResourcesPage() {
       <div className="fade-up flex items-start justify-between gap-6">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            Resources
+            Resource Fetch Summary
           </h1>
           <p className="text-[13px] text-slate-500 mt-1">
             Raw cloud resource configurations fetched from your connected
@@ -239,6 +247,17 @@ export default function ResourcesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push(`/${path}/resources/db`)}
+            disabled={!canFetch || loading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-all border ${
+              !canFetch || loading
+                ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-500/50 cursor-not-allowed"
+                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+            }`}
+          >
+            Resources
+          </button>
           <button
             onClick={downloadExcel}
             disabled={!canFetch || loading}
@@ -510,31 +529,6 @@ export default function ResourcesPage() {
         </div>
       )}
 
-      {data?.summary && (
-        <div className="fade-up flex items-center gap-3 flex-wrap">
-          <div className="text-[12px] text-slate-500 font-mono">
-            {data.summary.total_resources} total resources
-          </div>
-          <div className="w-px h-3 bg-white/[0.08]" />
-          {Object.entries(data.summary.by_service ?? {}).map(([svc, count]) => (
-            <button
-              key={svc}
-              onClick={() => {
-                setService(svc);
-                setSelected(null);
-              }}
-              className={`text-[11px] font-mono px-2.5 py-1 rounded border transition-all uppercase ${
-                service === svc
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "border-white/[0.06] text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              {svc} <span className="opacity-50">{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {!data && !loading && (
         <div className="fade-up flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] py-24 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-500">
@@ -561,72 +555,97 @@ export default function ResourcesPage() {
       )}
 
       {data && !loading && (
-        <div className="fade-up flex gap-4">
-          <div className="flex-1 min-w-0 border border-white/[0.06] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 uppercase tracking-wider font-medium">
-                {service.toUpperCase()} - {resources.length} resources
-              </span>
+        <div className="fade-up">
+          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-[#0f1117]">
+            {/* HEADER */}
+            <div className="px-5 py-4 border-b border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  {service.toUpperCase()} Resource Summaries
+                </h2>
+
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Total summaries: {data.length}
+                </p>
+              </div>
             </div>
 
-            {resources.length === 0 ? (
-              <div className="py-12 text-center text-[12px] text-slate-600">
-                No {service.toUpperCase()} resources found in this account
+            {data.length === 0 ? (
+              <div className="py-14 text-center text-[13px] text-slate-500">
+                No {service.toUpperCase()} resources found
               </div>
             ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {resources.map((resource, i) => (
-                  <button
-                    key={`${resource.resource_id ?? resource.resource_name ?? service}-${i}`}
-                    onClick={() => setSelected(resource)}
-                    className={`w-full text-left px-4 py-3 transition-colors text-[12px] ${
-                      selected === resource
-                        ? "bg-emerald-500/[0.06]"
-                        : "hover:bg-white/[0.02]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40 shrink-0" />
-                      <div className="font-mono text-slate-300 truncate">
-                        {resource.resource_name || resource.resource_id}
-                      </div>
-                      <div className="ml-auto text-[10px] text-slate-600 uppercase font-mono shrink-0">
-                        {resource.region}
-                      </div>
-                    </div>
-                    {resource.resource_name &&
-                      resource.resource_name !== resource.resource_id && (
-                        <div className="ml-4 text-[11px] text-slate-600 mt-0.5 truncate">
-                          {resource.resource_name}
-                        </div>
-                      )}
-                  </button>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px]">
+                  <thead className="bg-white/[0.02] border-b border-white/[0.06]">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500">
+                      <th className="px-5 py-4 font-medium">Summary ID</th>
+
+                      <th className="px-5 py-4 font-medium">Total Resources</th>
+
+                      <th className="px-5 py-4 font-medium">New Resources</th>
+
+                      <th className="px-5 py-4 font-medium">
+                        Updated Resources
+                      </th>
+
+                      <th className="px-5 py-4 font-medium">Fetched Date</th>
+
+                      <th className="px-5 py-4 font-medium text-right">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {data.map((d, i) => (
+                      <tr
+                        key={`${d.id}-${i}`}
+                        className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="px-5 py-4">
+                          <div className="font-mono text-[12px] text-emerald-400">
+                            {d.id}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-[13px] text-slate-300">
+                          {d.total_resources_fetched_count}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 text-[11px]">
+                            {d.newly_added_resources_count}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="px-2 py-1 rounded-lg bg-orange-500/10 text-orange-300 text-[11px]">
+                            {d.updated_resources_count}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-[12px] text-slate-400">
+                          {new Date(d.fetched_date).toLocaleString()}
+                        </td>
+
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            onClick={() =>
+                              router.push(`/${path}/resources/${d.id}`)
+                            }
+                            className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition text-[12px]"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-
-          {selected && (
-            <div className="w-96 shrink-0 bg-[#0d0d14] border border-white/[0.06] rounded-xl overflow-hidden self-start">
-              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 font-mono truncate">
-                  {selected.resource_id}
-                </span>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="text-slate-600 hover:text-slate-300 shrink-0 ml-2"
-                  aria-label="Close resource details"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="p-4 overflow-auto max-h-[70vh]">
-                <pre className="text-[10px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap">
-                  {JSON.stringify(selected, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { yamlApi, Rule } from "@/lib/api";
+import { yamlApi } from "@/lib/api";
 import SeverityBadge from "@/components/SeverityBadge";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/errors";
+import { Rule } from "@/lib/props";
 
 // ── What the /yaml/policies/ endpoint actually returns ──────────
 interface YamlPolicyResource {
@@ -21,6 +23,8 @@ interface YamlPoliciesResponse {
 }
 
 export default function PoliciesPage() {
+  const params = useParams<{ id: string }>();
+  const org = params.id;
   const [policies, setPolicies] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +134,7 @@ export default function PoliciesPage() {
 
         <div className="flex row gap-2">
           <Link
-            href="/policies/create"
+            href={`/${org}/policies/create`}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-all border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20
             `}
           >
@@ -306,7 +310,7 @@ export default function PoliciesPage() {
                                   Edit
                                 </button> */}
                                 <Link
-                                  href={`/policies/edit/${rule._id}`}
+                                  href={`/${org}/policies/edit/${rule._id}`}
                                   className="text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/10"
                                   onClick={(e) => e.stopPropagation()}
                                 >

@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       const session = await authApi.login({ email, password });
       saveSession(session);
-      router.push("/profile");
+      router.push("/institution");
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Login failed"));
     } finally {

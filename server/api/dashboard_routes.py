@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgressDB import get_db
 from services.db_resources_service import get_resources_DB
-from services.dashboard_service import scan_details_service, recent_scans_service
+from services.dashboard_service import scan_details_service, recent_scans_service, scan_resources_service
 
 router = APIRouter(
     prefix="/dashboard",
@@ -14,13 +14,14 @@ router = APIRouter(
 
 
 
-@router.get("/recent-scans")
+@router.get("/recent-scans/{accountIdentifier}")
 async def recent_scans(
+    accountIdentifier: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
     limit: int = Query(default=25, ge=1, le=100),
 ):
-    return await recent_scans_service(request=request, db=db, limit=limit)
+    return await recent_scans_service(accountIdentifier=accountIdentifier, request=request, db=db, limit=limit)
 
 
 @router.get("/scans/{scan_id}")
@@ -38,3 +39,12 @@ async def fetch_resources(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_resources_DB(request=request, db=db)
+
+
+@router.get("/scanServices/{accountIdentifier}")
+async def scan_resources(
+    request: Request,
+    accountIdentifier: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await scan_resources_service(db=db, accountIdentifier=accountIdentifier, request=request)

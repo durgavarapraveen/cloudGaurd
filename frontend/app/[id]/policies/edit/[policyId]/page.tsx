@@ -121,9 +121,9 @@ function LineNumbers({ count }: { count: number }) {
 
 // ── Main page ──────────────────────────────────────────────────
 export default function EditPolicyPage() {
-  const params = useParams();
+  const params = useParams<{ policyId: string }>();
   const router = useRouter();
-  const id = typeof params.id === "string" ? params.id : "";
+  const id = params.policyId ?? "";
 
   // Raw document from MongoDB
   const [doc, setDoc] = useState<PolicyDocument | null>(null);
