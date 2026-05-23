@@ -1,14 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { authApi } from "@/lib/api";
+import { rootUserAuthApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { saveSession } from "@/lib/session";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,9 +16,13 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const session = await authApi.login({ email, password });
+      const data = {
+        username: email,
+        password: password,
+      };
+      const session = await rootUserAuthApi.login(data);
       saveSession(session);
-      router.push("/institution");
+      window.location.href = `/admin/organization`;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Login failed"));
     } finally {
@@ -30,7 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen p-8 flex items-center justify-center relative z-10">
+    <div className="min-h-screen w-screen p-8 flex items-center justify-center relative z-10">
       <div className="w-full max-w-md fade-up">
         <div className="mb-8">
           <div className="w-11 h-11 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-5">
@@ -52,7 +53,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-semibold text-white tracking-tight">
-            Sign in to CloudGuard
+            Sign in to CloudGuard (Root Sign-in)
           </h1>
           <p className="text-[13px] text-slate-500 mt-2">
             Access scans, policies, resources, and account controls.
@@ -71,15 +72,14 @@ export default function LoginPage() {
 
           <label className="block space-y-2">
             <span className="text-[11px] text-slate-500 uppercase tracking-widest">
-              Email
+              Username
             </span>
             <input
-              type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
               className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-emerald-500/50"
-              placeholder="you@company.com"
+              placeholder="Enter your Username"
             />
           </label>
 
@@ -109,7 +109,7 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
 
-          <div className="text-[12px] text-slate-500 text-center pt-2">
+          {/* <div className="text-[12px] text-slate-500 text-center pt-2">
             New to CloudGuard?{" "}
             <Link
               href="/signup"
@@ -117,7 +117,7 @@ export default function LoginPage() {
             >
               Create an account
             </Link>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>

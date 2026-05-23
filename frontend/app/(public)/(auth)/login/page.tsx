@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { rootUserAuthApi } from "@/lib/api";
+import { authApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { saveSession } from "@/lib/session";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,13 +19,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = {
-        username: email,
-        password: password,
-      };
-      const session = await rootUserAuthApi.login(data);
+      const session = await authApi.login({ email, password });
       saveSession(session);
-      window.location.href = `/admin/organization`;
+      router.push("/institution");
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Login failed"));
     } finally {
@@ -31,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen p-8 flex items-center justify-center relative z-10">
+    <div className="min-h-screen w-screen p-8 flex items-center justify-center relative z-10">
       <div className="w-full max-w-md fade-up">
         <div className="mb-8">
           <div className="w-11 h-11 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-5">
@@ -53,7 +52,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-semibold text-white tracking-tight">
-            Sign in to CloudGuard (Root Sign-in)
+            Sign in to CloudGuard
           </h1>
           <p className="text-[13px] text-slate-500 mt-2">
             Access scans, policies, resources, and account controls.
@@ -75,6 +74,7 @@ export default function LoginPage() {
               Email
             </span>
             <input
+              type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -109,7 +109,7 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
 
-          {/* <div className="text-[12px] text-slate-500 text-center pt-2">
+          <div className="text-[12px] text-slate-500 text-center pt-2">
             New to CloudGuard?{" "}
             <Link
               href="/signup"
@@ -117,7 +117,7 @@ export default function LoginPage() {
             >
               Create an account
             </Link>
-          </div> */}
+          </div>
         </form>
       </div>
     </div>

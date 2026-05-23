@@ -1,13 +1,11 @@
+// app/(org)/[accountId]/layout.tsx
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { consumeSessionHandoff, hasSession } from "@/lib/session";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import Sidebar from "./Sidebar";
-
-type AppShellProps = {
-  children: React.ReactNode;
-};
+import Sidebar from "@/components/Sidebar";
+import { use } from "react";
 
 const dashboardIcon = (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
@@ -132,112 +130,41 @@ const resourcesIcon = (
   </svg>
 );
 
-const adminSegments = new Set([
-  "",
-  "institution",
-  "profile",
-  "resources",
-  "roles",
-]);
-
-const publicSegments = new Set(["login", "signup"]);
-
-const adminNav = [
-  {
-    href: "/profile",
-    label: "Users",
-    icon: dashboardIcon,
-  },
-  {
-    href: "/roles",
-    label: "Roles & Permission",
-    icon: dashboardIcon,
-  },
-  {
-    href: "/institution",
-    label: "Organization",
-    icon: dashboardIcon,
-  },
+const normalNav = () => [
+  { href: "/institution", label: "Organization", icon: dashboardIcon },
+  { href: "/profile", label: "Users", icon: dashboardIcon },
+  { href: "/roles", label: "Roles & Permissions", icon: dashboardIcon },
 ];
 
-function accountNav(org: string) {
-  return [
-    {
-      href: `/${org}`,
-      label: "Dashboard",
-      icon: dashboardIcon,
-    },
-    {
-      href: `/${org}/findings`,
-      label: "Findings",
-      icon: findingsIcon,
-    },
-    {
-      href: `/${org}/policies`,
-      label: "Policies",
-      icon: policiesIcon,
-    },
-    {
-      href: `/${org}/resources`,
-      label: "Resources",
-      icon: resourcesIcon,
-    },
-  ];
-}
-
-import { useSyncExternalStore } from "react";
-
-function useHasSession() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => hasSession(),
-    () => false,
-  );
-}
-
-export default function AppShell({ children }: AppShellProps) {
-  const pathname = usePathname();
+export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const handoffConsumed = useRef(false);
-  const [ready, setReady] = useState(false); // ✅ gate for redirect
-
-  const isAuthenticated = useHasSession();
-  const firstSegment = pathname.split("/").filter(Boolean)[0] ?? "";
-  const isPublicRoute = publicSegments.has(firstSegment);
-  const isAccountRoute = !adminSegments.has(firstSegment);
-  const nav = isAccountRoute ? accountNav(firstSegment) : adminNav;
+  const [ready, setReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (!handoffConsumed.current) {
-      consumeSessionHandoff();
-      handoffConsumed.current = true;
-    }
-    setReady(true); // ✅ mark as ready after client hydration
+    consumeSessionHandoff();
+    setIsAuthenticated(hasSession());
+    setReady(true);
   }, []);
 
-  // useEffect(() => {
-  //   if (!ready) return;
-  //   if (!isPublicRoute && !isAuthenticated) {
-  // router.replace("/login");
-  // }
-  // }, [ready, isPublicRoute, isAuthenticated, router]);
+  useEffect(() => {
+    if (!ready) return;
+    if (!isAuthenticated) router.replace("/login");
+  }, [ready, isAuthenticated, router]);
 
-  // ✅ Show nothing until client is ready (prevents flash)
-  // if (!ready) {
-  //   return <main className="flex-1 min-h-screen">{children}</main>;
-  // }
+  if (!ready) {
+    return (
+      <main className="flex-1 min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" />
+      </main>
+    );
+  }
 
-  // if (isPublicRoute) {
-  //   return <main className="flex-1 min-h-screen">{children}</main>;
-  // }
-
-  // if (!isAuthenticated) {
-  //   return null;
-  // }
+  if (!isAuthenticated) return null;
 
   return (
     <>
-      <Sidebar nav={nav} />
+      <Sidebar nav={normalNav()} />
       <main className="flex-1 ml-56 min-h-screen">{children}</main>
     </>
   );
