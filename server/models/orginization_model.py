@@ -123,3 +123,9 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
     
+    resource_schedular = relationship(
+        "ResourceSchedular",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    

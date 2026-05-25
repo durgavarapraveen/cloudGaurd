@@ -28,6 +28,7 @@ def scan_efs(session, region):
         backup_resp = safe_call(client.describe_backup_policy, FileSystemId=fs_id)
  
         results.append({
+            "service": "efs",
             "resource_type":       "efs_filesystem",
             "resource_id":         fs_id,
             "resource_name":       next((t["Value"] for t in fs.get("Tags", [])

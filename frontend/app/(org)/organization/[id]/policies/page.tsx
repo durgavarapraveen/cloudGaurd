@@ -134,7 +134,7 @@ export default function PoliciesPage() {
 
         <div className="flex row gap-2">
           <Link
-            href={`/${org}/policies/create`}
+            href={`/organization/${org}/policies/create`}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-all border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20
             `}
           >
@@ -310,7 +310,7 @@ export default function PoliciesPage() {
                                   Edit
                                 </button> */}
                                 <Link
-                                  href={`/${org}/policies/edit/${rule._id}`}
+                                  href={`/organization/${org}/policies/edit/${rule._id}`}
                                   className="text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/10"
                                   onClick={(e) => e.stopPropagation()}
                                 >

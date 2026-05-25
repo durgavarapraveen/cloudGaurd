@@ -21,6 +21,7 @@ from models.scans_model import Scans
 from models.findings_model import Findings
 from models.resources_model import Resources
 from models.resourceSummary_model import ResourceSummary
+from models.resourceSchedular_model import ResourceSchedular
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

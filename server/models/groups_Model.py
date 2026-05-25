@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import String, Boolean, Table, Column, ForeignKey
+from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from uuid6 import uuid7
@@ -20,6 +20,11 @@ class UserGroups(Base):
 
     name: Mapped[str] = mapped_column(
         String(50),
+        nullable=False
+    )
+    
+    description: Mapped[str] = mapped_column(
+        String(1024),
         nullable=False
     )
     

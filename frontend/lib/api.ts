@@ -28,12 +28,15 @@ import {
 import {
   ApiMessageResponse,
   CreateCloudAccount,
+  CreateGroupPayload,
   createOrganization,
+  CreateSchedulerPayload,
   CreateUserbyRootUser,
   CreateUserPayload,
   DashboardScanDetail,
   DashboardScansResponse,
   Finding,
+  Group,
   LoginPayload,
   LoginResponse,
   PaginationMeta,
@@ -48,6 +51,7 @@ import {
   RootLoginResponse,
   ScannerResult,
   ScanResult,
+  SchedulerDetail,
   Summary,
   UserProfile,
   UserRolesResponse,
@@ -999,5 +1003,143 @@ export const cloudAccounts = {
       throw new Error(
         await parseApiError(res, "Cloud Account creation failed"),
       );
+  },
+};
+
+// ------------------Schedulars ------------------
+export const schedular = {
+  getAllSchedulars: async (accountIdentifier: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/${accountIdentifier}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`Schedular fetch failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  createSchedular: async (
+    data: CreateSchedulerPayload,
+    accountIdentifier: string,
+  ): Promise<void> => {
+    const res = await apiFetch(
+      `${BASE}/schedulars/create/${accountIdentifier}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(data),
+      },
+    );
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular creation failed"));
+  },
+
+  updateSchedular: async (
+    data: CreateSchedulerPayload,
+    schedularId: string,
+  ): Promise<void> => {
+    const res = await apiFetch(`${BASE}/schedulars/update/${schedularId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular Updation failed"));
+  },
+
+  makeSchedularInactive: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/inactive/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  makeSchedularactive: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/active/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  getSchedularDetail: async (schedularId: string): Promise<SchedulerDetail> => {
+    const url = `${BASE}/schedulars/schedular/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  getSchedularStatus: async (schedularId: string): Promise<SchedulerDetail> => {
+    const url = `${BASE}/schedulars/status/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  deleteSchedular: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/delete/${schedularId}`;
+    const res = await apiFetch(url, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular Deletion failed: ${res.statusText}`);
+    return res.json();
+  },
+};
+
+export const GroupsAPI = {
+  async allGroups(): Promise<Group[]> {
+    const url = `${BASE}/group/`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch groups");
+    return res.json();
+  },
+  async createGroup(data: CreateGroupPayload): Promise<Group> {
+    console.log(data);
+    const url = `${BASE}/group/create`;
+    const res = await apiFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to create group");
+    return res.json();
+  },
+  async editGroup(id: string, data: CreateGroupPayload): Promise<Group> {
+    const url = `${BASE}/group/edit/${id}`;
+    const res = await apiFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to edit group");
+    return res.json();
+  },
+  async addUsers(id: string, userIds: string[]): Promise<Group> {
+    console.log(id);
+    const url = `${BASE}/group/addUsers/${id}`;
+    const res = await apiFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userIds),
+    });
+    if (!res.ok) throw new Error("Failed to add users");
+    return res.json();
+  },
+  async deleteGroup(id: string): Promise<boolean> {
+    const url = `${BASE}/group/delete/${id}`;
+    const res = await fetch(url, { method: "DELETE" });
+    return res.ok;
   },
 };

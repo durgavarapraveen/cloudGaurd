@@ -217,6 +217,7 @@ export interface UserProfile {
   is_active?: boolean;
   is_deleted?: boolean;
   roles?: Array<string | { name: string }>;
+  groups?: Array<string | { name: string }>;
   created_at?: string;
 }
 
@@ -326,4 +327,66 @@ export interface createOrganization {
   name: string;
   slug: string;
   description: string;
+}
+
+export type Scheduler = {
+  id: string;
+  name: string;
+  fetch_time: string;
+  frequency: number;
+  stop_date: string;
+  is_active: boolean;
+};
+
+export type CreateSchedulerPayload = {
+  name: string;
+  fetch_time: string;
+  frequency: number;
+  stop_date: string;
+};
+
+export type ResourceSummary = {
+  id: string;
+  provider: string;
+  total_resources_fetched_count: number;
+  updated_resources_count: number;
+  newly_added_resources_count: number;
+  updated_resource_ids: string[];
+  newly_added_resource_ids: string[];
+  fetched_date: string;
+  cloud_account_id: string;
+};
+
+export type SchedulerDetail = {
+  id: string;
+  name: string;
+  fetch_time: string;
+  frequency: number;
+  stop_date: string;
+  is_active: boolean;
+  resource_summary: ResourceSummary[];
+  job_running: boolean;
+  next_run: string | null;
+  trigger: string | null;
+  last_scan: string;
+};
+
+export interface GroupUser {
+  user_id: string;
+  username: string;
+  email: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  users: UserProfile[];
+  permissions: string[];
+}
+
+export interface CreateGroupPayload {
+  name: string;
+  description: string;
+  permissions: string[];
 }

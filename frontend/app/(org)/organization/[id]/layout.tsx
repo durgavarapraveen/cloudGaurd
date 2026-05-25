@@ -131,16 +131,31 @@ const resourcesIcon = (
 );
 
 const accountNav = (accountId: string) => [
-  { href: `/${accountId}`, label: "Dashboard", icon: dashboardIcon },
-  { href: `/${accountId}/findings`, label: "Findings", icon: findingsIcon },
-  { href: `/${accountId}/policies`, label: "Policies", icon: policiesIcon },
-  { href: `/${accountId}/resources`, label: "Resources", icon: resourcesIcon },
-];
-
-const normalNav = () => [
-  { href: "/institution", label: "Organization", icon: dashboardIcon },
-  { href: "/profile", label: "Users", icon: dashboardIcon },
-  { href: "/roles", label: "Roles & Permissions", icon: dashboardIcon },
+  {
+    href: `/organization/${accountId}`,
+    label: "Dashboard",
+    icon: dashboardIcon,
+  },
+  {
+    href: `/organization/${accountId}/findings`,
+    label: "Findings",
+    icon: findingsIcon,
+  },
+  {
+    href: `/organization/${accountId}/policies`,
+    label: "Policies",
+    icon: policiesIcon,
+  },
+  {
+    href: `/organization/${accountId}/resource_summary`,
+    label: "Resource Summary",
+    icon: resourcesIcon,
+  },
+  {
+    href: `/organization/${accountId}/schedular`,
+    label: "Schedular",
+    icon: resourcesIcon,
+  },
 ];
 
 export default function OrgLayout({

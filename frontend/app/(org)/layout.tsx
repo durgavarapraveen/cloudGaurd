@@ -131,9 +131,17 @@ const resourcesIcon = (
 );
 
 const normalNav = () => [
-  { href: "/institution", label: "Organization", icon: dashboardIcon },
-  { href: "/profile", label: "Users", icon: dashboardIcon },
-  { href: "/roles", label: "Roles & Permissions", icon: dashboardIcon },
+  {
+    href: "/organization/institution",
+    label: "Organization",
+    icon: dashboardIcon,
+  },
+  { href: "/organization/profile", label: "Users", icon: dashboardIcon },
+  {
+    href: "/organization/roles",
+    label: "Roles & Permissions",
+    icon: dashboardIcon,
+  },
 ];
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {

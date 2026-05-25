@@ -1,9 +1,7 @@
+
 from aiohttp import ClientError
-from fastapi import HTTPException, Request
-from datetime import datetime, date
-from uuid import UUID
-import json
-import hashlib
+from fastapi import HTTPException
+from datetime import datetime
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,46 +9,28 @@ from sqlalchemy import select
 
 from models.resources_model import Resources
 from models.resourceSummary_model import ResourceSummary
+from models.cloudAccount_Model import CloudAccounts
 
-from repository.resources_repository import (
-    getcloudAccountwithAccountIdentifier,
-    get_aLL_resources_DB_Repository,
-    get_resource_summary_DB_Repository,
-    get_resource_summary_DB_with_ID_Repository,
-    get_resource_detail_for_summary_DB_Repository
-)
+from services.resource_service import sanitize_for_json, hash_resource
 
 from utils.aws_session import get_session as aws_session
 
 from scanners.AWS.aws_scanner import collect_all
 
-def get_request_organization_id(request: Request):
-    return (
-        getattr(request.state, "organizationId", None)
-        or getattr(request.state, "organizationID", None)
+
+async def all_resources_service_aws(
+    db: AsyncSession,
+    cloud_account_id: str,
+    services: list[str] | None,
+    organization_id: str,
+    schedular_id: str | None = None,
+):
+    print(f"Scheduler Resource Update Triggered")
+    result = await db.execute(
+        select(CloudAccounts)
+        .where(CloudAccounts.id == cloud_account_id)
     )
-    
-def hash_resource(res: dict) -> str:
-    stable = json.dumps(res, sort_keys=True, default=str)  # ✅ sorted + safe
-    return hashlib.sha256(stable.encode()).hexdigest()
-
-def sanitize_for_json(obj):
-    """Recursively convert non-serializable types to JSON-safe values."""
-    if isinstance(obj, dict):
-        return {k: sanitize_for_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [sanitize_for_json(i) for i in obj]
-    elif isinstance(obj, (datetime, date)):
-        return obj.isoformat()         # "2024-01-15T10:30:00"
-    elif isinstance(obj, UUID):
-        return str(obj)                # "019e4bf5-41a2-..."
-    elif isinstance(obj, float) and obj != obj:  # NaN check
-        return None
-    return obj
-
-async def all_resources_service_aws(db: AsyncSession, account_identifier: str, services: list[str] , request: Request):
-    organization_id = get_request_organization_id(request)
-    cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=account_identifier, request=request)
+    cloudAccount = result.scalar_one_or_none()
     
     if not cloudAccount:
         raise HTTPException(
@@ -90,6 +70,7 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     
     summary = ResourceSummary(
         cloud_account_id=cloudAccount.id,
+        resource_schedular_id=schedular_id,
         provider=provider,
         organization_id=organization_id,
         total_resources_fetched_count=resource_count,
@@ -103,7 +84,14 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     db.add(summary)
     await db.flush()
     
-    existing_resources = await get_all_resource(db, account_identifier=account_identifier,cloud_account_id=cloudAccount.id ,request=request) 
+    existing_result = await db.execute(
+        select(Resources)
+        .where(
+            Resources.cloud_account_id == cloud_account_id,
+            Resources.organization_id == organization_id
+        )
+    )
+    existing_resources = existing_result.scalars().all()
     
     existing_map = {}
     
@@ -189,60 +177,3 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
 
         "updated_resource_ids": updated_resource
     }
-                
-
-
-async def get_all_resources_from_DB_service(
-    db, account_identifier, request,
-    page=1, page_size=50, service_filter=None
-):
-    cloudAccount = await getcloudAccountwithAccountIdentifier(
-        db, account_identifier=account_identifier, request=request
-    )
-    return await get_aLL_resources_DB_Repository(
-        db,
-        cloud_account_id=cloudAccount.id,
-        request=request,
-        page=page,
-        page_size=page_size,
-        service_filter=service_filter
-    )
-
-
-async def get_resource_summary(db: AsyncSession, account_identifier: str , request: Request):
-    cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=account_identifier, request=request)   
-    cloud_account_id = cloudAccount.id
-    summary = await get_resource_summary_DB_Repository(db, cloud_account_id=cloud_account_id, request=request)
-    return summary
-
-async def get_resource_summary_with_ID_Service(db: AsyncSession,resourceSummaryID: str , request: Request):
-    summary = await get_resource_summary_DB_with_ID_Repository(db=db, resourceSummaryID=resourceSummaryID, request=request)
-    if not summary:
-        raise HTTPException(status_code=404, detail="Resource summary not found")
-    return summary
-
-async def get_resource_detail_for_summary_Service(
-    db: AsyncSession,
-    resourceSummaryID: str,
-    resourceId: str,
-    request: Request,
-):
-    return await get_resource_detail_for_summary_DB_Repository(
-        db=db,
-        resourceSummaryID=resourceSummaryID,
-        resourceId=resourceId,
-        request=request,
-    )
-    
-async def get_all_resource(db: AsyncSession, account_identifier=str,cloud_account_id=UUID, request=Request):
-    organization_id = get_request_organization_id(request)
-    query = await db.execute(
-        select(Resources)
-        .where(
-            Resources.cloud_account_id == cloud_account_id,
-            Resources.organization_id == organization_id
-        )
-    )
-    resources = query.scalars().all()
-    return resources
-    

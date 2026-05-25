@@ -1,7 +1,7 @@
 "use client";
 
 import { rootUserAPI } from "@/lib/api";
-import { getRootUserId } from "@/lib/session";
+import { getCurrentUserId } from "@/lib/session";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -34,7 +34,7 @@ export default function OrganizationsPage() {
 
   useEffect(() => {
     const fetch = () => {
-      const id = getRootUserId();
+      const id = getCurrentUserId();
       console.log(id);
       if (id == null) return;
       loadOrgs(id);

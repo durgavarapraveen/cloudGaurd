@@ -129,7 +129,7 @@ export default function NewPolicyPage() {
       await yamlApi.createPolicy(selectedProvider, selectedService, yaml);
       setSaveStatus("saved");
       // Navigate back to policies list after a short delay
-      setTimeout(() => router.push(`/${org}/policies`), 1200);
+      setTimeout(() => router.push(`/organization/${org}/policies`), 1200);
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err, "Failed to create policy"));
       setSaveStatus("error");

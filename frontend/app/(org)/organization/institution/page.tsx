@@ -111,7 +111,7 @@ export default function Page() {
           </div>
 
           <Link
-            href="/institution/linknewaccount"
+            href="/organization/institution/linknewaccount"
             className="flex items-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 font-medium transition hover:bg-emerald-600"
           >
             <Plus className="h-4 w-4" />
@@ -188,7 +188,9 @@ export default function Page() {
                       </td>
 
                       <td className="px-4 py-4 text-slate-300">
-                        <Link href={`${account.account_identifier}`}>
+                        <Link
+                          href={`/organization/${account.account_identifier}`}
+                        >
                           {account.account_identifier || "unnamed identifier"}
                         </Link>
                       </td>

@@ -195,7 +195,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#06060f] text-white overflow-x-hidden">
+    <div className="min-h-screen w-screen bg-[#06060f] text-white overflow-x-hidden">
       {/* Grid bg */}
       <div
         className="fixed inset-0 pointer-events-none"

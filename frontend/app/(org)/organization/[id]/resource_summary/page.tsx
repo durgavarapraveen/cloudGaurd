@@ -14,8 +14,10 @@ import {
 import { awsScannerApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import PathName from "@/components/PathName";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ResourceSummaryResponse } from "@/lib/props";
+import ResourcesDBPage from "./resources/page";
+import ResourceSummary from "./[summary_id]/page";
 
 interface CloudResource {
   resource_id?: string;
@@ -97,8 +99,33 @@ const serviceLabels: Record<string, string> = {
 };
 
 export default function ResourcesPage() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const resourceChildPath = pathname.split("/resource_summary/")[1];
+  const childView =
+    searchParams.get("view") ??
+    (resourceChildPath === "resources" ? "resources" : null);
+  const summaryId =
+    searchParams.get("summary_id") ??
+    (resourceChildPath && resourceChildPath !== "resources"
+      ? resourceChildPath
+      : null);
+
+  if (childView === "resources") {
+    return <ResourcesDBPage />;
+  }
+
+  if (summaryId) {
+    return <ResourceSummary summaryId={summaryId} />;
+  }
+
+  return <ResourceSummaryList />;
+}
+
+function ResourceSummaryList() {
   const path = PathName();
   const router = useRouter();
+
   const [data, setData] = useState<ResourceSummaryResponse[] | []>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +197,7 @@ export default function ResourcesPage() {
       account_identifier: path,
     });
     setData(res);
-    console.log(res)
+    console.log(res);
   };
   useEffect(() => {
     fetch();
@@ -248,7 +275,9 @@ export default function ResourcesPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/${path}/resources/db`)}
+            onClick={() =>
+              router.push(`/organization/${path}/resource_summary/resources`)
+            }
             disabled={!canFetch || loading}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-all border ${
               !canFetch || loading
@@ -632,7 +661,9 @@ export default function ResourcesPage() {
                         <td className="px-5 py-4 text-right">
                           <button
                             onClick={() =>
-                              router.push(`/${path}/resources/${d.id}`)
+                              router.push(
+                                `/organization/${path}/resource_summary/${d.id}`,
+                              )
                             }
                             className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition text-[12px]"
                           >

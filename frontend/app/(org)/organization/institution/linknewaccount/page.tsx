@@ -113,7 +113,7 @@ export default function Page() {
 
       await cloudAccounts.createPolicy(payload);
 
-      router.push("/institution");
+      router.push("/organization/institution");
     } catch (err: unknown) {
       console.error(err);
       setError(getErrorMessage(err, "Failed to connect cloud account"));

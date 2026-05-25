@@ -198,9 +198,10 @@ function ResourceSection({
   );
 }
 
-export default function ResourceSummary() {
+export default function ResourceSummary({ summaryId }: { summaryId?: string }) {
   const params = useParams();
-  const resourceSummaryID = params.summary_id as string;
+  console.log(params);
+  const resourceSummaryID = summaryId ?? (params.summary_id as string);
   const [data, setData] = useState<ResourceSummaryResponse>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

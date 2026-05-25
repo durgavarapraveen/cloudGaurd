@@ -41,7 +41,7 @@ async def permission_objects_from_names(db: AsyncSession, permission_names: list
     missing = set(permission_names) - found_names
 
     for name in missing:
-        await add_permission(db, name)
+        await add_permission(db, name, request=request)
 
     permission_result = await db.execute(
         select(Permission).where(Permission.name.in_(permission_names))

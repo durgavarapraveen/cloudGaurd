@@ -1,7 +1,6 @@
 "use client";
 
 import { rootUserAPI } from "@/lib/api";
-import { getRootUserId } from "@/lib/session";
 import { use, useEffect, useState } from "react";
 
 type User = {
