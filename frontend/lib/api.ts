@@ -52,11 +52,9 @@ import {
   ScannerResult,
   ScanResult,
   SchedulerDetail,
-  Summary,
   UserProfile,
   UserRolesResponse,
 } from "./props";
-import { Rule } from "postcss";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -480,7 +478,7 @@ export const UsersProfile = {
       }),
     });
     if (!res.ok) {
-      const errorMessage = await parseApiError(res, "Failed to Delete User");
+      const errorMessage = await parseApiError(res, "Failed to Create User");
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }

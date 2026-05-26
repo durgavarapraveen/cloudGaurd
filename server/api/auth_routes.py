@@ -1,9 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgressDB import get_db
 
-from services.auth_service import (register_user, login_user, delete_user, logout_user, refresh_user_token)
+from services.auth_service import (
+    change_password as change_password_service,
+    delete_user,
+    forgot_password_service,
+    login_user,
+    logout_user,
+    refresh_user_token,
+    register_user,
+    reset_password_service,
+)
 
 from schemas.user_schema import (
     CreateUserRequest,
@@ -55,3 +64,31 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db)
 ):
     return await refresh_user_token(data.refresh_token, db)
+
+@router.post("/change_password/{userId}")
+async def change_password(
+    userId: str,
+    newPassword: str,
+    oldPassword: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await change_password_service(userId=userId, db=db, Newpassword=newPassword, oldPassword=oldPassword)
+
+@router.post("/forgot-password")
+async def forgot_password(
+    email: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    return await forgot_password_service(email=email, db=db, request=request, background_tasks=background_tasks)
+
+@router.post("/reset-password")
+async def reset_password(
+    token: str,
+    newPassword: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await reset_password_service(token=token, db=db, new_password=newPassword)
+
+

@@ -50,7 +50,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         auth_header = request.headers.get("Authorization")
         slug = request.headers.get("X-Tenant-Slug")
-
         if not auth_header:
             return JSONResponse(
                 status_code=401,
