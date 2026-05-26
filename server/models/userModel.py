@@ -77,5 +77,10 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
+    password_reset_tokens = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     
     

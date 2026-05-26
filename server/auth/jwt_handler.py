@@ -6,6 +6,11 @@ from sqlalchemy import Boolean
 
 ALGORITHM = "HS256"
 
+import secrets
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
+
 
 def create_access_token(
     user_id: str,

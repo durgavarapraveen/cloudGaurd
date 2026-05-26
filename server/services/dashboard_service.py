@@ -6,11 +6,10 @@ from decimal import Decimal
 from enum import Enum
 from sqlalchemy.orm import selectinload
 
-from fastapi import HTTPException, Query, Request
+from fastapi import HTTPException,  Request
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.accounts_model import Accounts
 from models.findings_model import Findings
 from models.resources_model import Resources
 from models.scans_model import Scans
@@ -261,7 +260,6 @@ async def scan_details_service(
         serialize_finding(finding)
         for finding in scan.findings
     ]
-    print(scan.cloud_account_id)
     
     resources = await db.execute(
         select(Resources)
@@ -276,7 +274,6 @@ async def scan_details_service(
     #         Resources.service.in_(services_scanned)
     #     )
 
-    print(resources)
     resources = [
         serialize_resource(resource)
         for resource in resources

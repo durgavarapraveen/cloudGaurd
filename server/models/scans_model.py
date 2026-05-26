@@ -162,10 +162,3 @@ class Scans(Base):
         cascade="all, delete-orphan",
         
     )
-    
-    summary = relationship(
-        "Summary",
-        back_populates="scans",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )

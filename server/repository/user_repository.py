@@ -53,7 +53,7 @@ async def get_all_users(db: AsyncSession, request: Request):
     result = await db.execute(
         select(User)
         .where(User.organization_id == organization_id)
-        .options(selectinload(User.roles))
+        .options(selectinload(User.roles), selectinload(User.groups))
     )
     users = result.scalars().all()
 
@@ -65,6 +65,7 @@ async def get_all_users(db: AsyncSession, request: Request):
             "is_active": user.is_active,
             "is_deleted": user.is_deleted,
             "roles": [role.name for role in user.roles],
+            "groups": [g.name for g in user.groups]
         }
         for user in users
     ]

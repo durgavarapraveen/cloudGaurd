@@ -33,6 +33,16 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-south-1}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_SERVER: ${MAIL_SERVER}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-true}
+      MAIL_SSL_TLS: ${MAIL_SSL_TLS:-false}
+      MAIL_SUPPRESS_SEND: ${MAIL_SUPPRESS_SEND:-false}
+      FRONT_END_URL: ${FRONT_END_URL}
     ports:
       - "8001:8000"
     volumes:
@@ -44,7 +54,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=2)\"",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:8000/'', timeout=2)"',
         ]
       interval: 10s
       timeout: 5s
@@ -62,7 +72,7 @@ services:
 
     working_dir: /app
 
-    command: npm run dev
+    command: npm run dev -- --hostname 0.0.0.0
 
     environment:
       NODE_ENV: development

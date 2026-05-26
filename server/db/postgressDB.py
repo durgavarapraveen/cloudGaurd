@@ -20,9 +20,8 @@ from models.cloudAccount_Model import CloudAccounts
 from models.scans_model import Scans
 from models.findings_model import Findings
 from models.resources_model import Resources
-from models.summary_model import Summary
-from models.accounts_model import Accounts
 from models.resourceSummary_model import ResourceSummary
+from models.resourceSchedular_model import ResourceSchedular
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

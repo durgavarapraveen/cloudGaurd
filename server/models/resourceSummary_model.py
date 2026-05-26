@@ -45,6 +45,15 @@ class ResourceSummary(Base):
         nullable=False
     )
     
+    resource_schedular_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "resource_schedular.id",
+            ondelete="SET NULL"
+        ),
+        nullable=True
+    )
+    
     provider: Mapped[str] = mapped_column(
         String(50),
         nullable=False
@@ -108,6 +117,11 @@ class ResourceSummary(Base):
     cloud_account = relationship(
         "CloudAccounts",
         back_populates="resource_summary"
+    )
+    
+    resource_schedular = relationship(
+        "ResourceSchedular",
+        back_populates="resource_summary",
     )
     
     

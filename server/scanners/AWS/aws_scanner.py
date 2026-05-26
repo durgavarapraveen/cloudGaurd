@@ -114,7 +114,7 @@ async def collect_all(session, services=None, regions=None):
             tasks.append((f"elasticache_{region}", scan_elasticache, (session, region)))
             
         if "route53" in services:
-            tasks.append((f"route53_{region}", scan_route53, (session, region)))
+            tasks.append((f"route53_{region}", scan_route53, (session,)))
             
         if "transitGateway" in services:
             tasks.append((f"transitGateway_{region}", scan_transit_gateway, (session, region)))

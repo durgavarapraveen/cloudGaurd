@@ -5,6 +5,8 @@ const BASE = (
 )
   .trim()
   .replace(/\/$/, "");
+const LOCAL_HOSTNAMES = new Set(["localhost", "127", "127.0.0.1"]);
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase();
 
 function backendUrl(path: string) {
   return `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -18,6 +20,40 @@ function backendSearchUrl(path: string) {
   return new URL(backendUrl(path), origin);
 }
 
+function getTenantSlug() {
+  if (typeof window === "undefined") return null;
+
+  const hostname = window.location.hostname.toLowerCase();
+  if (LOCAL_HOSTNAMES.has(hostname) || hostname.startsWith("www.")) {
+    return null;
+  }
+
+  if (ROOT_DOMAIN) {
+    if (hostname === ROOT_DOMAIN || hostname === `www.${ROOT_DOMAIN}`) {
+      return null;
+    }
+
+    if (!hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+      return null;
+    }
+  } else if (hostname.split(".").length < 3) {
+    return null;
+  }
+
+  const slug = hostname.split(".")[0]?.trim();
+  return slug || null;
+}
+
+function requireTenantSlug() {
+  const slug = getTenantSlug();
+  if (!slug) {
+    throw new Error(
+      "Missing organization slug. Open your organization login URL.",
+    );
+  }
+  return slug;
+}
+
 import toast from "react-hot-toast";
 import {
   ACCESS_TOKEN_KEY,
@@ -28,12 +64,15 @@ import {
 import {
   ApiMessageResponse,
   CreateCloudAccount,
+  CreateGroupPayload,
   createOrganization,
+  CreateSchedulerPayload,
   CreateUserbyRootUser,
   CreateUserPayload,
   DashboardScanDetail,
   DashboardScansResponse,
   Finding,
+  Group,
   LoginPayload,
   LoginResponse,
   PaginationMeta,
@@ -48,11 +87,10 @@ import {
   RootLoginResponse,
   ScannerResult,
   ScanResult,
-  Summary,
+  SchedulerDetail,
   UserProfile,
   UserRolesResponse,
 } from "./props";
-import { Rule } from "postcss";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -151,8 +189,7 @@ async function refreshAccessToken(): Promise<LoginResponse> {
 }
 
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const hostname = window.location.hostname;
-  const slug = hostname.split(".")[0];
+  const slug = requireTenantSlug();
   const requestInit = {
     ...init,
     headers: {
@@ -348,9 +385,13 @@ export const authApi = {
   },
 
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
+    const slug = requireTenantSlug();
     const res = await fetch(`${BASE}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-Slug": slug,
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -366,6 +407,62 @@ export const authApi = {
     });
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  changePassword: async ({
+    userId,
+    oldPassword,
+    newPassword,
+  }: {
+    userId: string;
+    oldPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const params = new URLSearchParams({
+      oldPassword,
+      newPassword,
+    });
+    const res = await apiFetch(
+      `${BASE}/auth/change_password/${userId}?${params}`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Password change failed"));
+    }
+    return res.json();
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const params = new URLSearchParams({ email });
+    const res = await fetch(`${BASE}/auth/forgot-password?${params}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Password reset request failed"),
+      );
+    }
+    return res.json();
+  },
+
+  resetPassword: async ({
+    token,
+    newPassword,
+  }: {
+    token: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const params = new URLSearchParams({ token, newPassword });
+    const res = await fetch(`${BASE}/auth/reset-password?${params}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Password reset failed"));
     }
     return res.json();
   },
@@ -476,7 +573,7 @@ export const UsersProfile = {
       }),
     });
     if (!res.ok) {
-      const errorMessage = await parseApiError(res, "Failed to Delete User");
+      const errorMessage = await parseApiError(res, "Failed to Create User");
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -999,5 +1096,143 @@ export const cloudAccounts = {
       throw new Error(
         await parseApiError(res, "Cloud Account creation failed"),
       );
+  },
+};
+
+// ------------------Schedulars ------------------
+export const schedular = {
+  getAllSchedulars: async (accountIdentifier: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/${accountIdentifier}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`Schedular fetch failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  createSchedular: async (
+    data: CreateSchedulerPayload,
+    accountIdentifier: string,
+  ): Promise<void> => {
+    const res = await apiFetch(
+      `${BASE}/schedulars/create/${accountIdentifier}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(data),
+      },
+    );
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular creation failed"));
+  },
+
+  updateSchedular: async (
+    data: CreateSchedulerPayload,
+    schedularId: string,
+  ): Promise<void> => {
+    const res = await apiFetch(`${BASE}/schedulars/update/${schedularId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular Updation failed"));
+  },
+
+  makeSchedularInactive: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/inactive/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  makeSchedularactive: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/active/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  getSchedularDetail: async (schedularId: string): Promise<SchedulerDetail> => {
+    const url = `${BASE}/schedulars/schedular/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  getSchedularStatus: async (schedularId: string): Promise<SchedulerDetail> => {
+    const url = `${BASE}/schedulars/status/${schedularId}`;
+    const res = await apiFetch(url, {
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular inactive failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  deleteSchedular: async (schedularId: string): Promise<[]> => {
+    const url = `${BASE}/schedulars/delete/${schedularId}`;
+    const res = await apiFetch(url, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (!res.ok)
+      throw new Error(`Schedular Deletion failed: ${res.statusText}`);
+    return res.json();
+  },
+};
+
+export const GroupsAPI = {
+  async allGroups(): Promise<Group[]> {
+    const url = `${BASE}/group/`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch groups");
+    return res.json();
+  },
+  async createGroup(data: CreateGroupPayload): Promise<Group> {
+    console.log(data);
+    const url = `${BASE}/group/create`;
+    const res = await apiFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to create group");
+    return res.json();
+  },
+  async editGroup(id: string, data: CreateGroupPayload): Promise<Group> {
+    const url = `${BASE}/group/edit/${id}`;
+    const res = await apiFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to edit group");
+    return res.json();
+  },
+  async addUsers(id: string, userIds: string[]): Promise<Group> {
+    console.log(id);
+    const url = `${BASE}/group/addUsers/${id}`;
+    const res = await apiFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userIds),
+    });
+    if (!res.ok) throw new Error("Failed to add users");
+    return res.json();
+  },
+  async deleteGroup(id: string): Promise<boolean> {
+    const url = `${BASE}/group/delete/${id}`;
+    const res = await fetch(url, { method: "DELETE" });
+    return res.ok;
   },
 };

@@ -120,7 +120,9 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     updated_resource = []
     new_resources = []
     all_resources = []
-    for svc_resources in resources["resources"].values():
+    for service_name, svc_resources in resources["resources"].items():
+        for res in svc_resources:
+            res.setdefault("service", service_name)
         all_resources.extend(svc_resources)
     
     for res in all_resources:
@@ -139,12 +141,12 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
                 organization_id=organization_id,
                 cloud_account_id=cloudAccount.id,
                 provider=provider,
-                service=res.get("service"),
-                resource_type=res.get("resource_type"),
-                resource_id=res.get("resource_id"),
-                resource_name=res.get("resource_name"),
-                arn=res.get("arn"),
-                region=res.get("region"),
+                service=sanitized.get("service"),
+                resource_type=sanitized.get("resource_type"),
+                resource_id=sanitized.get("resource_id"),
+                resource_name=sanitized.get("resource_name"),
+                arn=sanitized.get("arn"),
+                region=sanitized.get("region"),
                 tags=sanitize_for_json(res.get("tags", {})),        
                 configuration=sanitize_for_json(res.get("configuration", {})), 
                 hashValue=hash_value,
@@ -152,8 +154,8 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
             )
             db.add(resource_obj)            
             new_resources.append({
-                "resource_id": res.get("resource_id"),
-                "service": res.get("service")
+                "resource_id": sanitized.get("resource_id"),
+                "service": sanitized.get("service")
             })
 
         # UPDATED RESOURCE

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -34,9 +34,10 @@ class EditUserInfoRequest(BaseModel):
 async def createUser(
     data: CreateUserByAdmin,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
-    return await create_new_user(db=db, data=data, request=request)
+    return await create_new_user(db=db, data=data, request=request, background_tasks=background_tasks)
 
 @router.get("", dependencies=[Depends(require_permission("users:read"))])
 @router.get("/", dependencies=[Depends(require_permission("users:read"))])
