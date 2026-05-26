@@ -230,7 +230,7 @@ async def change_password(db: AsyncSession, userId: str, Newpassword: str, oldPa
     if not user:
         raise HTTPException(status_code=404, detail="No User Found")
     
-    if not verify_password(user.password, oldPassword):
+    if not verify_password(oldPassword, user.password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
     hashPassword = hash_password(Newpassword)
@@ -240,17 +240,17 @@ async def change_password(db: AsyncSession, userId: str, Newpassword: str, oldPa
         "message": "Password updated Successful"
     }
     
-async def forgot_password_service(db: AsyncSession, email: str, background_tasks: BackgroundTasks, request=Request):
+async def forgot_password_service(db: AsyncSession, email: str, background_tasks: BackgroundTasks, request: Request):
     user = await get_user_by_email(db, email)
-    organization_id = request.state.organizationId
     if not user:
         return {"message": "If that email exists, a reset link has been sent."}
     
     token = generate_reset_token()          # your token logic
-    expires = datetime.utcnow() + timedelta(minutes=30)
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(minutes=30)
     
     restToken = PasswordResetToken(
-        user_id=user.email,
+        user_id=user.id,
         token_hash = hashlib.sha256(token.encode()).hexdigest(),
         expires_at=expires,
         used=False
@@ -259,19 +259,24 @@ async def forgot_password_service(db: AsyncSession, email: str, background_tasks
     db.add(restToken)
     await db.commit()
     
-    organization = await CheckOrganizationwithID(db, organization_id)
+    organization = await CheckOrganizationwithID(db, user.organization_id)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
     slug = organization.slug
+    frontend_url = os.getenv("FRONT_END_URL", "localhost:3000").rstrip("/")
+    if not frontend_url.startswith(("http://", "https://")):
+        frontend_url = f"http://{frontend_url}"
     
     send_forgot_password_email(
         background_tasks=background_tasks,
         email_to=user.email,
         username=user.username,
         reset_token=token,
-        reset_url=f"{slug}.{os.getenv('FRONT_END_URL')}/reset-password?token={token}",
+        reset_url=f"{frontend_url}/reset-password?token={token}&organization={slug}",
         expires_in="30 minutes",
         expires_at=expires.strftime("%b %d, %Y at %I:%M %p UTC"),
-        requested_at=datetime.utcnow().strftime("%b %d, %Y at %I:%M %p UTC"),
-        request_ip=request.client.host,
+        requested_at=now.strftime("%b %d, %Y at %I:%M %p UTC"),
+        request_ip=request.client.host if request.client else "unknown",
     )
 
     return {"message": "If that email exists, a reset link has been sent."}

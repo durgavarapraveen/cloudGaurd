@@ -5,6 +5,8 @@ const BASE = (
 )
   .trim()
   .replace(/\/$/, "");
+const LOCAL_HOSTNAMES = new Set(["localhost", "127", "127.0.0.1"]);
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase();
 
 function backendUrl(path: string) {
   return `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -16,6 +18,40 @@ function backendSearchUrl(path: string) {
       ? "http://localhost:3000"
       : window.location.origin;
   return new URL(backendUrl(path), origin);
+}
+
+function getTenantSlug() {
+  if (typeof window === "undefined") return null;
+
+  const hostname = window.location.hostname.toLowerCase();
+  if (LOCAL_HOSTNAMES.has(hostname) || hostname.startsWith("www.")) {
+    return null;
+  }
+
+  if (ROOT_DOMAIN) {
+    if (hostname === ROOT_DOMAIN || hostname === `www.${ROOT_DOMAIN}`) {
+      return null;
+    }
+
+    if (!hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+      return null;
+    }
+  } else if (hostname.split(".").length < 3) {
+    return null;
+  }
+
+  const slug = hostname.split(".")[0]?.trim();
+  return slug || null;
+}
+
+function requireTenantSlug() {
+  const slug = getTenantSlug();
+  if (!slug) {
+    throw new Error(
+      "Missing organization slug. Open your organization login URL.",
+    );
+  }
+  return slug;
 }
 
 import toast from "react-hot-toast";
@@ -153,8 +189,7 @@ async function refreshAccessToken(): Promise<LoginResponse> {
 }
 
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const hostname = window.location.hostname;
-  const slug = hostname.split(".")[0];
+  const slug = requireTenantSlug();
   const requestInit = {
     ...init,
     headers: {
@@ -350,9 +385,13 @@ export const authApi = {
   },
 
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
+    const slug = requireTenantSlug();
     const res = await fetch(`${BASE}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-Slug": slug,
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -368,6 +407,62 @@ export const authApi = {
     });
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Logout failed"));
+    }
+    return res.json();
+  },
+
+  changePassword: async ({
+    userId,
+    oldPassword,
+    newPassword,
+  }: {
+    userId: string;
+    oldPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const params = new URLSearchParams({
+      oldPassword,
+      newPassword,
+    });
+    const res = await apiFetch(
+      `${BASE}/auth/change_password/${userId}?${params}`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Password change failed"));
+    }
+    return res.json();
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const params = new URLSearchParams({ email });
+    const res = await fetch(`${BASE}/auth/forgot-password?${params}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Password reset request failed"),
+      );
+    }
+    return res.json();
+  },
+
+  resetPassword: async ({
+    token,
+    newPassword,
+  }: {
+    token: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const params = new URLSearchParams({ token, newPassword });
+    const res = await fetch(`${BASE}/auth/reset-password?${params}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Password reset failed"));
     }
     return res.json();
   },

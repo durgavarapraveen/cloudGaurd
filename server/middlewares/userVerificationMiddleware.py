@@ -19,6 +19,8 @@ EXCLUDED_ROUTES = [
     "/auth/register",
     "/auth/login",
     "/auth/refresh-token",
+    "/auth/forgot-password",
+    "/auth/reset-password",
     "/docs",
     "/redoc",
     "/openapi.json",
@@ -30,11 +32,24 @@ EXCLUDED_ROUTE_PREFIXES = [
     "/root_user/login/",
 ]
 
+LOCAL_TENANT_SLUGS = {"localhost", "127", "127.0.0.1"}
+
 def is_excluded_route(path: str) -> bool:
-    return path in EXCLUDED_ROUTES or any(
+    normalized_path = path.rstrip("/") or "/"
+    return normalized_path in EXCLUDED_ROUTES or any(
         path.startswith(prefix)
         for prefix in EXCLUDED_ROUTE_PREFIXES
     )
+
+def normalize_tenant_slug(slug: str | None) -> str | None:
+    if not slug:
+        return None
+
+    normalized_slug = slug.strip().lower()
+    if not normalized_slug or normalized_slug in LOCAL_TENANT_SLUGS:
+        return None
+
+    return normalized_slug
 
 class AuthMiddleware(BaseHTTPMiddleware):
 
@@ -49,7 +64,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
-        slug = request.headers.get("X-Tenant-Slug")
+        slug = normalize_tenant_slug(request.headers.get("X-Tenant-Slug"))
         if not auth_header:
             return JSONResponse(
                 status_code=401,
