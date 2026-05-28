@@ -16,6 +16,7 @@ import PathName from "@/components/PathName";
 
 export default function DashboardPage() {
   const accountIdentifier = PathName();
+  console.log(accountIdentifier);
   const [data, setData] = useState<ScanResult | null>(null);
   const [scanHistory, setScanHistory] = useState<DashboardScan[]>([]);
   const [selectedScan, setSelectedScan] = useState<DashboardScanDetail | null>(

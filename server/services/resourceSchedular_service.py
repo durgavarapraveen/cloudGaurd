@@ -7,6 +7,7 @@ from sqlalchemy import select
 from repository.resourceSchedular_repository import (
     getcloudAccountwithAccountIdentifier
 )
+from repository.resources_repository import serialize_resource_summary
 
 from models.resourceSchedular_model import ResourceSchedular
 
@@ -34,6 +35,23 @@ def get_scheduled_time_today(fetch_time):
     now = datetime.now(timezone.utc)
     return datetime.combine(now.date(), fetch_time, tzinfo=timezone.utc)
 
+def serialize_schedular(schedular: ResourceSchedular) -> dict:
+    return {
+        "id": str(schedular.id),
+        "name": schedular.name,
+        "fetch_time": str(schedular.fetch_time),
+        "frequency": schedular.frequency,
+        "stop_date": schedular.stop_date.isoformat()
+        if schedular.stop_date
+        else None,
+        "is_active": schedular.is_active,
+        "last_scan": schedular.last_scan.isoformat()
+        if schedular.last_scan
+        else None,
+        "cloud_account_id": str(schedular.cloud_account_id),
+        "organization_id": str(schedular.organization_id),
+    }
+
 async def getAllSchedular_service(db: AsyncSession, cloudIdentifier: str, request: Request):
     organization_id = get_request_organization_id(request)
     cloudAccount = await getcloudAccountwithAccountIdentifier(db=db, account_identifier=cloudIdentifier, request=request)
@@ -42,7 +60,7 @@ async def getAllSchedular_service(db: AsyncSession, cloudIdentifier: str, reques
         .where(ResourceSchedular.cloud_account_id == cloudAccount.id, ResourceSchedular.organization_id == organization_id)
     )
     schedular = schedular.scalars().all()
-    return schedular
+    return [serialize_schedular(item) for item in schedular]
 
 async def makeSchedularInactive_service(db: AsyncSession, schedularId: str,request: Request):
     organization_id = get_request_organization_id(request)
@@ -93,7 +111,7 @@ async def cerateSchedular_service(db: AsyncSession, data: CreateNewScheduler,clo
         replace_existing=True,
     )
 
-    return schedular
+    return serialize_schedular(schedular)
 
 async def updateSchedular_service(db: AsyncSession, data: CreateNewScheduler, schedularId: str, request: Request):
     organization_id = get_request_organization_id(request)
@@ -128,7 +146,7 @@ async def updateSchedular_service(db: AsyncSession, data: CreateNewScheduler, sc
         replace_existing=True,
     )
     
-    return schedular
+    return serialize_schedular(schedular)
     
 async def getSchedularDetails_service(db: AsyncSession, schedularId: str, request: Request):
     organization_id = get_request_organization_id(request)
@@ -141,8 +159,6 @@ async def getSchedularDetails_service(db: AsyncSession, schedularId: str, reques
     if not schedular:
         raise HTTPException(status_code=404, detail="No Schedular Found")
     
-    print(schedular.resource_summary)
-    
     job = scheduler.get_job(str(schedularId))
     
     return {
@@ -152,12 +168,17 @@ async def getSchedularDetails_service(db: AsyncSession, schedularId: str, reques
         "frequency": schedular.frequency,
         "stop_date": str(schedular.stop_date),
         "is_active": schedular.is_active,
-        "resource_summary": schedular.resource_summary,
+        "resource_summary": [
+            serialize_resource_summary(summary)
+            for summary in schedular.resource_summary
+        ],
         # job status merged in
         "job_running": job is not None and scheduler.running,
         "next_run": str(job.next_run_time) if job else None,
         "trigger": str(job.trigger) if job else None,
-        "last_scan": schedular.last_scan
+        "last_scan": schedular.last_scan.isoformat()
+        if schedular.last_scan
+        else None
     }
 
 async def makeSchedularactive_service(db: AsyncSession, schedularId: str,request: Request):

@@ -10,6 +10,8 @@ import {
   Database,
   ChevronRight,
   Tag,
+  Delete,
+  DeleteIcon,
 } from "lucide-react";
 import { awsScannerApi } from "@/lib/api";
 import { ResourceItem, ResourceSummaryResponse } from "@/lib/props";
@@ -29,7 +31,7 @@ function ResourceRow({
   summaryId,
 }: {
   resource: ResourceItem;
-  type: "updated" | "added";
+  type: "updated" | "added" | "deleted";
   summaryId: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -57,27 +59,30 @@ function ResourceRow({
     }
   }
 
-  const isUpdated = type === "updated";
-
   return (
     <div>
       <button
         onClick={toggle}
+        disabled={type === "deleted"}
         aria-expanded={open}
-        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] transition-all text-left border-t border-white/[0.04] first:border-t-0"
+        className={`${type === "deleted" ? "opacity-50 cursor-not-allowed" : ""} w-full flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] transition-all text-left border-t border-white/[0.04] first:border-t-0`}
       >
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
           ${
-            isUpdated
+            type === "updated"
               ? "bg-orange-500/10 border border-orange-500/10"
-              : "bg-emerald-500/10 border border-emerald-500/10"
+              : type === "added"
+                ? "bg-emerald-500/10 border border-emerald-500/10"
+                : "bg-red-500/10 border border-red-500/10"
           }`}
         >
-          {isUpdated ? (
+          {type === "updated" ? (
             <RefreshCw className="w-4 h-4 text-orange-300" />
-          ) : (
+          ) : type === "added" ? (
             <Database className="w-4 h-4 text-emerald-300" />
+          ) : (
+            <DeleteIcon className="w-4 h-4 text-red-300" />
           )}
         </div>
 
@@ -87,7 +92,11 @@ function ResourceRow({
           </div>
           <div className="text-xs text-slate-500 mt-1">
             {/* {resource.resource_type} ·{" "} */}
-            {isUpdated ? "Configuration changed" : "Newly discovered"}
+            {type === "updated"
+              ? "Configuration changed"
+              : type == "added"
+                ? "Newly discovered"
+                : "Deleted Resources"}
           </div>
         </div>
 
@@ -119,7 +128,7 @@ function ServiceGroup({
 }: {
   service: string;
   resources: ResourceItem[];
-  type: "updated" | "added";
+  type: "updated" | "added" | "deleted";
   summaryId: string;
 }) {
   return (
@@ -157,7 +166,7 @@ function ResourceSection({
   subtitle: string;
   count: number;
   resources: ResourceItem[];
-  type: "updated" | "added";
+  type: "updated" | "added" | "deleted";
   summaryId: string;
 }) {
   const grouped = groupByService(resources);
@@ -200,7 +209,6 @@ function ResourceSection({
 
 export default function ResourceSummary({ summaryId }: { summaryId?: string }) {
   const params = useParams();
-  console.log(params);
   const resourceSummaryID = summaryId ?? (params.summary_id as string);
   const [data, setData] = useState<ResourceSummaryResponse>();
   const [loading, setLoading] = useState(true);
@@ -255,7 +263,7 @@ export default function ResourceSummary({ summaryId }: { summaryId?: string }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
           <div className="text-slate-500 text-xs uppercase tracking-wider">
             Total resources
@@ -278,6 +286,14 @@ export default function ResourceSummary({ summaryId }: { summaryId?: string }) {
           </div>
           <div className="mt-3 text-3xl font-semibold text-emerald-300">
             {data.newly_added_resources_count}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-5">
+          <div className="flex items-center gap-2 text-red-300 text-xs uppercase tracking-wider">
+            <DeleteIcon className="w-3.5 h-3.5" /> Deleted resources
+          </div>
+          <div className="mt-3 text-3xl font-semibold text-red-300">
+            {data.deleted_resources_count}
           </div>
         </div>
       </div>
@@ -304,6 +320,15 @@ export default function ResourceSummary({ summaryId }: { summaryId?: string }) {
         count={data.newly_added_resources_count}
         resources={data.newly_added_resource_ids ?? []}
         type="added"
+        summaryId={resourceSummaryID}
+      />
+
+      <ResourceSection
+        title="Deleted resources"
+        subtitle="Resources Deleted from cloud"
+        count={data.deleted_resources_count}
+        resources={data.deleted_resources_ids ?? []}
+        type="deleted"
         summaryId={resourceSummaryID}
       />
     </div>

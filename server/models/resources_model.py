@@ -8,7 +8,8 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
-    UniqueConstraint
+    UniqueConstraint,
+    Boolean
 )
 
 from sqlalchemy.dialects.postgresql import (
@@ -126,6 +127,11 @@ class Resources(Base):
         nullable=True
     )
     
+    is_deleted: Mapped[Boolean] = mapped_column(
+        Boolean,
+        default=False
+    )
+    
     organization = relationship(
         "Organization",
         back_populates="resources",
@@ -150,4 +156,9 @@ class Resources(Base):
         UUID(as_uuid=True),
         ForeignKey("resource_summary.id", ondelete="CASCADE"),
         nullable=False
+    )
+    
+    drift_resource = relationship(
+        "DriftResources",
+        back_populates="resource"
     )

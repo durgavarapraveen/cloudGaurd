@@ -156,6 +156,11 @@ const accountNav = (accountId: string) => [
     label: "Schedular",
     icon: resourcesIcon,
   },
+  {
+    href: `/organization/${accountId}/drift`,
+    label: "Drift",
+    icon: resourcesIcon,
+  },
 ];
 
 export default function OrgLayout({
@@ -172,6 +177,8 @@ export default function OrgLayout({
 
   useEffect(() => {
     consumeSessionHandoff();
+    // Auth is stored in localStorage, so this guard has to hydrate after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAuthenticated(hasSession());
     setReady(true);
   }, []);
@@ -190,7 +197,6 @@ export default function OrgLayout({
   }
 
   if (!isAuthenticated) return null;
-  console.log(id);
 
   return (
     <>

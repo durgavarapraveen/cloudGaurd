@@ -618,6 +618,10 @@ function ResourceSummaryList() {
                         Updated Resources
                       </th>
 
+                      <th className="px-5 py-4 font-medium">
+                        Deleted Resources
+                      </th>
+
                       <th className="px-5 py-4 font-medium">Fetched Date</th>
 
                       <th className="px-5 py-4 font-medium text-right">
@@ -651,6 +655,12 @@ function ResourceSummaryList() {
                         <td className="px-5 py-4">
                           <span className="px-2 py-1 rounded-lg bg-orange-500/10 text-orange-300 text-[11px]">
                             {d.updated_resources_count}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="px-2 py-1 rounded-lg bg-orange-500/10 text-red-300 text-[11px]">
+                            {d.deleted_resources_count}
                           </span>
                         </td>
 

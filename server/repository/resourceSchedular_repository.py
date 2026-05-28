@@ -13,7 +13,6 @@ def get_request_organization_id(request: Request):
 
 async def getcloudAccountwithAccountIdentifier(db:AsyncSession, account_identifier: str, request: Request):
     organization_id = get_request_organization_id(request)
-    print(organization_id, account_identifier)
     cloudAccount = await db.execute(
         select(CloudAccounts)
         .where(CloudAccounts.organization_id == organization_id, CloudAccounts.account_identifier == account_identifier)

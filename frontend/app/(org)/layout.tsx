@@ -151,6 +151,8 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     consumeSessionHandoff();
+    // Auth is stored in localStorage, so this guard has to hydrate after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAuthenticated(hasSession());
     setReady(true);
   }, []);

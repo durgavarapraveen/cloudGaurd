@@ -83,4 +83,9 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     
+    comments = relationship(
+        "Comments",
+        back_populates="user",
+    )
+    
     

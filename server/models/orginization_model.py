@@ -129,3 +129,9 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
     
+    drift_resource = relationship(
+        "DriftResources",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    
