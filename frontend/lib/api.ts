@@ -96,6 +96,20 @@ import {
   UserRolesResponse,
 } from "./props";
 
+export interface ResourceMeta {
+  resource_type: string;
+  resource_name: string;
+  service?: string;
+}
+export interface ResourceRelationship {
+  id?: string;
+  source_id: string;
+  target_id: string;
+  relation: string;
+  source: ResourceMeta;
+  target: ResourceMeta;
+}
+
 // ─── Types ────────────────────────────────────────────────────
 
 function normalizeResourceSummary(
@@ -1238,5 +1252,32 @@ export const drifts = {
     const res = await apiFetch(url);
     if (!res.ok) throw new Error("Failed to fetch groups");
     return res.json();
+  },
+};
+
+export const graph = {
+  async getAllRelations(
+    accountIdentifier: string,
+  ): Promise<ResourceRelationship[]> {
+    const url = `${BASE}/relationship?cloudIdentifier=${accountIdentifier}`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch relationships");
+    return res.json();
+  },
+
+  async getResourceRelations(
+    accountIdentifier: string,
+    resourceId: string,
+  ): Promise<ResourceRelationship[]> {
+    const url = `${BASE}/relationship/resource/${resourceId}?cloudIdentifier=${accountIdentifier}`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch resource relationships");
+    return res.json();
+  },
+
+  async buildRelationships(cloudAccountId: string): Promise<void> {
+    const url = `${BASE}/relationship/build?cloud_account_id=${cloudAccountId}`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to build relationships");
   },
 };

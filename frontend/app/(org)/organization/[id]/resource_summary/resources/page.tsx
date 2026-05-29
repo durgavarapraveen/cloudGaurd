@@ -53,6 +53,7 @@ export default function ResourcesDBPage() {
           page_size: 50,
           service: svc ?? undefined,
         });
+        console.log(res.data);
         setResources(res.data);
         setPagination(res.pagination);
 

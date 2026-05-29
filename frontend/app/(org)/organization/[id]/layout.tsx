@@ -161,6 +161,11 @@ const accountNav = (accountId: string) => [
     label: "Drift",
     icon: resourcesIcon,
   },
+  {
+    href: `/organization/${accountId}/graph`,
+    label: "Graph",
+    icon: resourcesIcon,
+  },
 ];
 
 export default function OrgLayout({
