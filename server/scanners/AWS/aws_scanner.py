@@ -18,9 +18,6 @@ from scanners.AWS.Individual_resources.rds import scan_rds
 from scanners.AWS.Individual_resources.s3 import scan_s3
 from scanners.AWS.Individual_resources.ec2 import scan_ec2
 from scanners.AWS.Individual_resources.iam import scan_iam
-
-# from scanners.AWS.Individual_resources.awslb import scan_lb
-# from scanners.AWS.Individual_resources.awssecretManager import scan_secret_manager
 from scanners.AWS.Individual_resources.awsacm import scan_acm
 from scanners.AWS.Individual_resources.efs import scan_efs
 from scanners.AWS.Individual_resources.ebs import scan_ebs
@@ -32,6 +29,13 @@ from scanners.AWS.Individual_resources.ecs import scan_ecs
 from scanners.AWS.Individual_resources.elasticCache import scan_elasticache
 from scanners.AWS.Individual_resources.route53 import scan_route53
 from scanners.AWS.Individual_resources.transitGateway import scan_transit_gateway
+
+from scanners.AWS.Individual_resources.vpc_scanner import scan_vpc
+from scanners.AWS.Individual_resources.subnet_scanner import scan_subnets
+from scanners.AWS.Individual_resources.security_group_scanner import scan_security_groups
+from scanners.AWS.Individual_resources.lambda_scanner import scan_lambda
+from scanners.AWS.Individual_resources.elb_alb_nld_scanner import scan_elb
+from scanners.AWS.Individual_resources.cloud_formation_scanner import scan_cloudformation
 
 from utils.aws_session import get_session
 
@@ -45,7 +49,10 @@ logger = logging.getLogger(__name__)
 # SESSION
 # ─────────────────────────────────────────────
 
-services_all = ["s3", "iam", "ec2", "rds", "acm", "efs", "ebs", "ram", "privatelink", "kms", "ecr", "ecs", "elasticache", "route53", "transitGateway"]
+services_all = ["s3", "iam", "ec2", "rds", "acm", "efs", "ebs", "ram", "privatelink", "kms", "ecr", "ecs", "elasticache", "route53", "transitGateway"
+                # "vpc", "sg",
+                "subnet", "cloud_formation", "elb_alb_nlb", "lambda"
+                ]
 
 
 # ─────────────────────────────────────────────
@@ -118,6 +125,24 @@ async def collect_all(session, services=None, regions=None):
             
         if "transitGateway" in services:
             tasks.append((f"transitGateway_{region}", scan_transit_gateway, (session, region)))
+            
+        # if "vpc" in services:
+        #     tasks.append((f"vpc_{region}", scan_vpc, (session, region)))
+            
+        # if "sg" in services:
+        #     tasks.append((f"sg_{region}", scan_security_groups, (session, region)))
+        
+        # if "subnet" in services:
+        #     tasks.append((f"subnet_{region}", scan_subnets, (session, region)))
+        
+        if "cloud_formation" in services:
+            tasks.append((f"cloud_formation_{region}", scan_cloudformation, (session, region)))
+        
+        if "lambda" in services:
+            tasks.append((f"lambda_{region}", scan_lambda, (session, region)))
+        
+        if "elb_nlb_alb" in services:
+            tasks.append((f"elb_nlb_alb_{region}", scan_elb, (session, region)))
                 
     raw_results = {}
 
@@ -169,6 +194,19 @@ async def collect_all(session, services=None, regions=None):
             merged["route53"] += raw_results.get(f"route53_{region}", [])
         if "transitGateway" in services:
             merged["transitGateway"] += raw_results.get(f"transitGateway_{region}", [])
+        # if "vpc" in services:
+        #     merged["vpc"] += raw_results.get(f"vpc_{region}", [])
+        # if "subnet" in services:
+        #     merged["subnet"] += raw_results.get(f"subnet_{region}", [])
+        # if "sg" in services:
+        #     merged["sg"] += raw_results.get(f"sg_{region}", [])
+        if "lambda" in services:
+            merged["lambda"] += raw_results.get(f"lambda_{region}", [])
+        if "elb_alb_nlb" in services:
+            merged["elb_alb_nlb"] += raw_results.get(f"elb_alb_nlb_{region}", [])
+        if "cloud_formation" in services:
+            merged["cloud_formation"] += raw_results.get(f"cloud_formation_{region}", [])
+        
 
     # Summary
     by_service = {svc: len(merged[svc]) for svc in merged if svc in services}

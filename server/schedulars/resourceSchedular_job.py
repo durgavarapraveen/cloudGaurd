@@ -5,7 +5,8 @@ from models.resourceSchedular_model import ResourceSchedular
 from db.postgressDB import AsyncSessionLocal
 from datetime import datetime, timezone
 from fastapi import Request
-from .resourceSchedular import all_resources_service_aws
+# from .resourceSchedular import all_resources_service_aws
+from services.resource_service import all_resources_service_aws
 import asyncio
 from .schedular import scheduler
 

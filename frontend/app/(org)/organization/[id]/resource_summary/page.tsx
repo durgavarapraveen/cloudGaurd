@@ -55,6 +55,12 @@ const CLOUD_PROVIDERS = {
       "elasticache",
       "route53",
       "transitGateway",
+      "sg",
+      "Subnet",
+      "cloud_formation",
+      "lambda",
+      "elb_alb_nlb",
+      "vpc",
     ],
   },
   Azure: {
@@ -96,6 +102,12 @@ const serviceLabels: Record<string, string> = {
   storage: "Storage",
   transitGateway: "Transit Gateway",
   vm: "Virtual Machines",
+  cloud_formation: "Cloud Formation",
+  sg: "security Group",
+  vpc: "virtual Private Cloud",
+  elb_alb_nlb: "ELB ALB NLB",
+  lambda: "Lambda",
+  subnet: "Subnet",
 };
 
 export default function ResourcesPage() {

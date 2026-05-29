@@ -135,3 +135,9 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
     
+    resource_relationship = relationship(
+        "ResourceRelationShip",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )
+    

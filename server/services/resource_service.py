@@ -25,6 +25,7 @@ from utils.aws_session import get_session as aws_session
 from scanners.AWS.aws_scanner import collect_all
 
 from .driftResources_service import create_new_drift
+from .resource_relationship_service import build_relationships_service
 
 def get_request_organization_id(request: Request):
     return (
@@ -50,7 +51,7 @@ def sanitize_for_json(obj):
         return None
     return obj
 
-async def all_resources_service_aws(db: AsyncSession, account_identifier: str, services: list[str] , request: Request):
+async def all_resources_service_aws(db: AsyncSession, account_identifier: str, services: list[str] | None , request: Request, schedular_id: str | None = None):
     organization_id = get_request_organization_id(request)
     cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=account_identifier, request=request)
     
@@ -92,6 +93,7 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     summary = ResourceSummary(
         cloud_account_id=cloudAccount.id,
         provider=provider,
+        resource_schedular_id=schedular_id,
         organization_id=organization_id,
         total_resources_fetched_count=resource_count,
         updated_resources_count=0,
@@ -132,6 +134,7 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
         all_resources.extend(svc_resources)
     
     for res in all_resources:
+       
         sanitized = sanitize_for_json(res)
         hash_value = hash_resource(sanitized)
         key = (
@@ -204,6 +207,13 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     summary.deleted_resources_ids = deleted_resources
     summary.deleted_resources_count = len(deleted_resources)
     await db.commit()
+    
+    # await build_relationships_service(
+    #     db=db,
+    #     cloud_account_id=cloudAccount.id,
+    #     organization_id=organization_id
+    # )
+    
     await db.refresh(summary)
 
     return {
@@ -251,6 +261,7 @@ async def get_resource_summary_with_ID_Service(db: AsyncSession,resourceSummaryI
     summary = await get_resource_summary_DB_with_ID_Repository(db=db, resourceSummaryID=resourceSummaryID, request=request)
     if not summary:
         raise HTTPException(status_code=404, detail="Resource summary not found")
+    
     return summary
 
 async def get_resource_detail_for_summary_Service(

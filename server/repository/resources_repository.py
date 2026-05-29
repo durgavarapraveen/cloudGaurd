@@ -155,11 +155,13 @@ async def get_resource_detail_for_summary_DB_Repository(
     )
     if not summary:
         raise HTTPException(status_code=404, detail="Resource summary not found.")
+    
+    print(summary["cloud_account_id"])
 
     resource = await db.execute(
         select(Resources).where(
             Resources.organization_id == organization_id,
-            Resources.cloud_account_id == summary.cloud_account_id,
+            # Resources.cloud_account_id == summary.cloud_account_id,
             Resources.resource_id == resourceId,
         )
     )

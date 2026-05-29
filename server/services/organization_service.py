@@ -69,7 +69,7 @@ async def getOrganization(db: AsyncSession, id: str):
 async def getAllOrginizationsService(db: AsyncSession):
     organizations = await db.execute(
         select(Organization)
-        .options(selectinload(Organization.users))
+        .options(selectinload(Organization.users), selectinload(Organization.cloud_accounts))
     )
     return organizations.scalars().all()
 

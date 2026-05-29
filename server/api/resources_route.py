@@ -9,6 +9,8 @@ from db.postgressDB import get_db
 
 from schemas.CloudAccounts_Schema import CreateNewCloudAccount
 
+from analyzer.iam_analyzer import run_iam_analyzer
+
 router = APIRouter(
     prefix="/resources",
     tags=["Cloud Account Resources"]
@@ -65,10 +67,11 @@ async def get_resource_aws(
 ):
     service_list = services.split(",") if services else []
     return await all_resources_service_aws(
-        db,
+        db=db,
         account_identifier=account_identifier,
         services=service_list,
-        request=request
+        request=request,
+        schedular_id=None
     )
 
 

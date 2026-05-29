@@ -162,3 +162,17 @@ class Resources(Base):
         "DriftResources",
         back_populates="resource"
     )
+    
+    outgoing_relationships = relationship(
+        "ResourceRelationShip",
+        foreign_keys="ResourceRelationShip.source_id",
+        back_populates="source",
+        cascade="all, delete-orphan"
+    )
+
+    incoming_relationships = relationship(
+        "ResourceRelationShip",
+        foreign_keys="ResourceRelationShip.target_id",
+        back_populates="target",
+        cascade="all, delete-orphan"
+    )

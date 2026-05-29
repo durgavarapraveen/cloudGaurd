@@ -19,6 +19,7 @@ from api.resources_route import router as resource_router
 from api.resourceSchedular_route import router as resourceSchedular_router
 from api.group_route import router as group_router
 from api.drift_routes import router as drift_router
+from api.resource_relationship_route import router as resource_relationship_router
 
 from db.postgressDB import engine, AsyncSessionLocal
 from middlewares.userVerificationMiddleware import AuthMiddleware
@@ -123,6 +124,7 @@ app.include_router(resource_router)
 app.include_router(resourceSchedular_router)
 app.include_router(group_router)
 app.include_router(drift_router)
+app.include_router(resource_relationship_router)
 
 @app.get("/")
 def read_root():

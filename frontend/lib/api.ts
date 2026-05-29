@@ -801,6 +801,7 @@ export const awsScannerApi = {
         headers: authHeaders(),
       },
     );
+    console.log(res);
 
     if (!res.ok) {
       throw new Error(`Scanner failed: ${res.statusText}`);
