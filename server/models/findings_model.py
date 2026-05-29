@@ -61,11 +61,6 @@ class Findings(Base):
         nullable=True
     )
 
-    # provider: Mapped[str] = mapped_column(
-    #     String(50),
-    #     nullable=False
-    # )
-
     service: Mapped[str] = mapped_column(
         String(100),
         nullable=False
