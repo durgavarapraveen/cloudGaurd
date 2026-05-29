@@ -53,6 +53,12 @@ class UserGroups(Base):
         secondary=userGroup_permissions
     )
     
+    drift_resource = relationship(
+        "DriftResources",
+        back_populates="assigned_to"
+    ) 
+    
+    
     
     
     

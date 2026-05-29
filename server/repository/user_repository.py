@@ -76,7 +76,7 @@ async def get_user_by_id(db: AsyncSession, user_id: str, request: Request):
     result = await db.execute(
         select(User)
         .where(User.id == user_id, User.organization_id == organization_id)
-        .options(selectinload(User.roles))
+        .options(selectinload(User.roles), selectinload(User.groups))
     )
     user = result.scalar_one_or_none()
 

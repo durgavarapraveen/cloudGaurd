@@ -11,6 +11,51 @@ from models.resourceSummary_model import ResourceSummary
 from models.resources_model import Resources
 from models.cloudAccount_Model import CloudAccounts
 
+def serialize_resource_summary(summary: ResourceSummary) -> dict:
+    return {
+        "id": str(summary.id),
+        "cloud_account_id": str(summary.cloud_account_id),
+        "resource_schedular_id": (
+            str(summary.resource_schedular_id)
+            if summary.resource_schedular_id
+            else None
+        ),
+        "provider": summary.provider,
+        "organization_id": str(summary.organization_id),
+        "total_resources_fetched_count": summary.total_resources_fetched_count,
+        "updated_resources_count": summary.updated_resources_count,
+        "deleted_resources_count": summary.deleted_resources_count,
+        "updated_resource_ids": summary.updated_resource_ids or [],
+        "newly_added_resource_ids": summary.newly_added_resource_ids or [],
+        "deleted_resources_ids": summary.deleted_resources_ids or [],
+        "newly_added_resources_count": summary.newly_added_resources_count,
+        "fetched_date": summary.fetched_date.isoformat()
+        if summary.fetched_date
+        else None,
+    }
+
+def serialize_resource(resource: Resources) -> dict:
+    return {
+        "id": str(resource.id),
+        "cloud_account_id": str(resource.cloud_account_id),
+        "organization_id": str(resource.organization_id),
+        "provider": resource.provider,
+        "service": resource.service,
+        "resource_type": resource.resource_type,
+        "resource_id": resource.resource_id,
+        "resource_name": resource.resource_name,
+        "arn": resource.arn,
+        "region": resource.region,
+        "tags": resource.tags or {},
+        "configuration": resource.configuration or {},
+        "first_seen": resource.first_seen.isoformat()
+        if resource.first_seen
+        else None,
+        "last_seen": resource.last_seen.isoformat() if resource.last_seen else None,
+        "is_deleted": resource.is_deleted,
+        "resource_summary_id": str(resource.resource_summary_id),
+    }
+
 def get_request_organization_id(request: Request):
     return (
         getattr(request.state, "organizationId", None)
@@ -42,7 +87,8 @@ async def get_aLL_resources_DB_Repository(
         select(Resources)
         .where(
             Resources.cloud_account_id == cloud_account_id,
-            Resources.organization_id == organization_id
+            Resources.organization_id == organization_id,
+            Resources.is_deleted == False
         )
     )
 
@@ -64,7 +110,7 @@ async def get_aLL_resources_DB_Repository(
     resources = result.scalars().all()
 
     return {
-        "data": resources,
+        "data": [serialize_resource(resource) for resource in resources],
         "pagination": {
             "page": page,
             "page_size": page_size,
@@ -83,7 +129,7 @@ async def get_resource_summary_DB_Repository(db: AsyncSession, cloud_account_id:
     summary = summary.scalars().all()
     
     # sort from latest to oldest
-    return summary
+    return [serialize_resource_summary(item) for item in summary]
 
 async def get_resource_summary_DB_with_ID_Repository(db: AsyncSession, resourceSummaryID: str  ,request: Request):
     organization_id = get_request_organization_id(request)
@@ -92,7 +138,7 @@ async def get_resource_summary_DB_with_ID_Repository(db: AsyncSession, resourceS
         .where(ResourceSummary.id == resourceSummaryID, ResourceSummary.organization_id == organization_id)
     )
     summary = summary.scalar_one_or_none()
-    return summary
+    return serialize_resource_summary(summary) if summary else None
 
 async def get_resource_detail_for_summary_DB_Repository(
     db: AsyncSession,
@@ -121,4 +167,4 @@ async def get_resource_detail_for_summary_DB_Repository(
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found.")
 
-    return resource
+    return serialize_resource(resource)

@@ -191,3 +191,9 @@ class CloudAccounts(Base):
         back_populates="cloud_account",
         cascade="all, delete-orphan"
     )
+
+    drift_resource = relationship(
+        "DriftResources",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )

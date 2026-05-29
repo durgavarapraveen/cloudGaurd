@@ -80,6 +80,12 @@ class ResourceSummary(Base):
         default=0
     )
     
+    deleted_resources_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+    
     updated_resource_ids: Mapped[list[dict]] = mapped_column(
         JSONB,
         nullable=False,
@@ -87,6 +93,12 @@ class ResourceSummary(Base):
     )
 
     newly_added_resource_ids: Mapped[list[dict]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list
+    )
+    
+    deleted_resources_ids: Mapped[list[dict]] = mapped_column(
         JSONB,
         nullable=False,
         default=list

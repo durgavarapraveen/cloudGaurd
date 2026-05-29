@@ -13,6 +13,7 @@ from models.Base import Base
 from models.orginization_model import Organization
 from models.rootUser_model import RootUsers
 from models.userModel import User
+from models.passwordResetToken_model import PasswordResetToken
 from models.rolesModel import Role
 from models.permission import Permission
 from models.groups_Model import UserGroups
@@ -22,6 +23,8 @@ from models.findings_model import Findings
 from models.resources_model import Resources
 from models.resourceSummary_model import ResourceSummary
 from models.resourceSchedular_model import ResourceSchedular
+from models.drift_models import DriftResources
+from models.comments_model import Comments
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

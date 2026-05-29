@@ -24,10 +24,17 @@ function getTenantSlug() {
   if (typeof window === "undefined") return null;
 
   const hostname = window.location.hostname.toLowerCase();
-  if (LOCAL_HOSTNAMES.has(hostname) || hostname.startsWith("www.")) {
+  if (hostname === "localhost") {
+    return null;
+  }
+  if (hostname.endsWith(".localhost")) {
+    return hostname.split(".")[0] || null;
+  }
+  if (hostname.startsWith("www.")) {
     return null;
   }
 
+  // Production root domain logic
   if (ROOT_DOMAIN) {
     if (hostname === ROOT_DOMAIN || hostname === `www.${ROOT_DOMAIN}`) {
       return null;
@@ -40,8 +47,7 @@ function getTenantSlug() {
     return null;
   }
 
-  const slug = hostname.split(".")[0]?.trim();
-  return slug || null;
+  return hostname.split(".")[0]?.trim() || null;
 }
 
 function requireTenantSlug() {
@@ -71,14 +77,12 @@ import {
   CreateUserPayload,
   DashboardScanDetail,
   DashboardScansResponse,
-  Finding,
   Group,
   LoginPayload,
   LoginResponse,
+  PaginatedDrifts,
   PaginationMeta,
   Permission,
-  PoliciesResponse,
-  PolicySummary,
   ResourceDetailResponse,
   ResourceSummaryResponse,
   Role,
@@ -153,6 +157,7 @@ function getAccessTokenPayload(): Record<string, unknown> | null {
 }
 
 async function refreshAccessToken(): Promise<LoginResponse> {
+  console.log("Entered refresh token");
   if (typeof window === "undefined") {
     throw new Error("Token refresh is only available in the browser");
   }
@@ -774,51 +779,6 @@ export const dashboardApi = {
   },
 };
 
-// // ─── AWS Policies  /aws/policies/* ────────────────────────────
-// export const awsPoliciesApi = {
-//   // All rules — maps to GET /aws/policies/
-//   all: async (): Promise<PoliciesResponse> => {
-//     const res = await apiFetch(`${BASE}/aws/policies/`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok) throw new Error(`Policies fetch failed: ${res.statusText}`);
-//     return res.json();
-//   },
-
-//   // Summary — maps to GET /aws/policies/summary
-//   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-//     const res = await apiFetch(`${BASE}/aws/policies/summary`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok) throw new Error(`Policy summary failed: ${res.statusText}`);
-//     return res.json();
-//   },
-
-//   // By service — maps to GET /aws/policies/service/{service}
-//   byService: async (
-//     service: string,
-//   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-//     const res = await apiFetch(`${BASE}/aws/policies/service/${service}`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok)
-//       throw new Error(`Policy service filter failed: ${res.statusText}`);
-//     return res.json();
-//   },
-
-//   // By severity — maps to GET /aws/policies/severity/{severity}
-//   bySeverity: async (
-//     severity: string,
-//   ): Promise<{ success: boolean; count: number; rules: Rule[] }> => {
-//     const res = await apiFetch(`${BASE}/aws/policies/severity/${severity}`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok)
-//       throw new Error(`Policy severity filter failed: ${res.statusText}`);
-//     return res.json();
-//   },
-// };
-
 // ─── AWS Scanner  /aws/scanner/* ──────────────────────────────
 export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
@@ -971,27 +931,6 @@ export const awsScannerApi = {
     return res.json();
   },
 };
-
-// // ─── Azure Policies  /azure/policies/* ───────────────────────
-// export const azurePoliciesApi = {
-//   all: async (): Promise<PoliciesResponse> => {
-//     const res = await apiFetch(`${BASE}/azure/policies/`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok)
-//       throw new Error(`Azure policies fetch failed: ${res.statusText}`);
-//     return res.json();
-//   },
-
-//   summary: async (): Promise<{ success: boolean; summary: PolicySummary }> => {
-//     const res = await apiFetch(`${BASE}/azure/policies/summary`, {
-//       headers: authHeaders(),
-//     });
-//     if (!res.ok)
-//       throw new Error(`Azure policy summary failed: ${res.statusText}`);
-//     return res.json();
-//   },
-// };
 
 // ─── YAML Policies  /yaml/* ──────────────────────────────
 export const yamlApi = {
@@ -1234,5 +1173,69 @@ export const GroupsAPI = {
     const url = `${BASE}/group/delete/${id}`;
     const res = await fetch(url, { method: "DELETE" });
     return res.ok;
+  },
+};
+
+export const drifts = {
+  async fetchDrifts(
+    accountIdentifier: string,
+    page: number,
+    pageSize: number,
+    status?: string,
+  ): Promise<PaginatedDrifts> {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (status) params.set("status", status);
+    const url = `${BASE}/drift/${accountIdentifier}?${params}`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch groups");
+    return res.json();
+  },
+
+  updateAdmin: async (driftId: string, assigned_grp: string): Promise<void> => {
+    const res = await apiFetch(
+      `${BASE}/drift/update_admin/${driftId}?assigned_grp=${encodeURIComponent(assigned_grp)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+      },
+    );
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular Updation failed"));
+  },
+
+  updateAssigne: async (
+    driftId: string,
+    status: string,
+    comment: string,
+  ): Promise<void> => {
+    const res = await apiFetch(
+      `${BASE}/drift/update_user/${driftId}?status=${encodeURIComponent(status)}&comment=${encodeURIComponent(comment)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+      },
+    );
+    if (!res.ok)
+      throw new Error(await parseApiError(res, "Schedular Updation failed"));
+  },
+
+  async fetchDriftsforUser(
+    accountIdentifier: string,
+    page: number,
+    pageSize: number,
+    status?: string,
+  ): Promise<PaginatedDrifts> {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (status) params.set("status", status);
+    const url = `${BASE}/drift/user/${accountIdentifier}?${params}`;
+    const res = await apiFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch groups");
+    return res.json();
   },
 };

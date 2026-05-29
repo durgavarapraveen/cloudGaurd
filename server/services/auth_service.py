@@ -147,12 +147,7 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         if role.name == "rootUserOrg":
             root_user = True
             break
-    
-    permissions = []
-    
-    for role in user.roles:
-        for perm in role.permissions:
-            permissions.append(perm.name)
+
 
     new_access_token = create_access_token(str(user.id), str(user.organization_id), secret_key, root_user )
     new_refresh_token = create_refresh_token(str(user.id), secret_key)
@@ -160,7 +155,6 @@ async def refresh_user_token(refresh_token: str, db: AsyncSession):
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
         "user_id": str(user.id),
-        "permissions": permissions,
         "message": "Token refreshed successfully"
     }
     

@@ -296,6 +296,8 @@ export interface ResourceSummaryResponse {
   updated_resources_count: number;
   updated_resource_ids: ResourceItem[];
   newly_added_resource_ids: ResourceItem[];
+  deleted_resources_count: number;
+  deleted_resources_ids: ResourceItem[];
 }
 
 export interface ResourceDetailResponse {
@@ -390,3 +392,43 @@ export interface CreateGroupPayload {
   description: string;
   permissions: string[];
 }
+
+export type DriftStatus =
+  // | "new"
+  "assigned" | "in-progress" | "resolved" | "ignored";
+
+export interface DriftResource {
+  id: string;
+  resource_id: string;
+  resource_name: string;
+  resource_type: string;
+  issue_with_resource: string;
+  status: DriftStatus;
+  comments: Comment[];
+  assigned_to_id?: string;
+  assigned_to?: Group;
+  first_seen: string;
+  resource: ResourceDetailResponse;
+}
+
+export interface Comment {
+  comment: string;
+  entity_id: string;
+  created_at: string;
+  user: UserProfile;
+}
+
+export interface PaginatedDrifts {
+  items: DriftResource[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export const ALL_STATUSES: DriftStatus[] = [
+  // "new",
+  "assigned",
+  "in-progress",
+  "resolved",
+  "ignored",
+];
