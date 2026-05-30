@@ -101,6 +101,8 @@ import {
   IamEntity,
   ResourceDetail,
 } from "@/app/(org)/organization/[id]/iam/users/page";
+import { ShadowResponse } from "@/app/(org)/organization/[id]/shallow_detector/page";
+import { AnalysisReport } from "@/app/(org)/organization/[id]/security_analyzer/page";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -1304,6 +1306,30 @@ export const iam = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body?.detail ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+};
+
+export const shallow_detector = {
+  async getshallowdetectordetails(
+    cloud_account_id: string,
+  ): Promise<ShadowResponse> {
+    const url = `${BASE}/shallow_detector/detect?cloudIdentifier=${cloud_account_id}`;
+    const res = await apiFetch(url);
+    if (!res.ok) {
+      throw new Error("Failed to fetch IAM Resources");
+    }
+    return res.json();
+  },
+};
+
+export const security_analyzer = {
+  async get_security_report(cloud_account_id: string): Promise<AnalysisReport> {
+    const url = `${BASE}/security_analyzer/analyze?cloudIdentifier=${cloud_account_id}`;
+    const res = await apiFetch(url);
+    if (!res.ok) {
+      throw new Error("Failed to fetch IAM Resources");
     }
     return res.json();
   },

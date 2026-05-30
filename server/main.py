@@ -21,6 +21,8 @@ from api.group_route import router as group_router
 from api.drift_routes import router as drift_router
 from api.resource_relationship_route import router as resource_relationship_router
 from api.iam_route import router as iam_router
+from api.shallow_detector_route import router as shallow_detector_router
+from api.security_analyzer_routes import router as security_analyzer_router
 
 from db.postgressDB import engine, AsyncSessionLocal
 from middlewares.userVerificationMiddleware import AuthMiddleware
@@ -127,6 +129,8 @@ app.include_router(group_router)
 app.include_router(drift_router)
 app.include_router(resource_relationship_router)
 app.include_router(iam_router)
+app.include_router(shallow_detector_router)
+app.include_router(security_analyzer_router)
 
 @app.get("/")
 def read_root():

@@ -171,6 +171,21 @@ const accountNav = (accountId: string) => [
     label: "IAM",
     icon: resourcesIcon,
   },
+  {
+    href: `/organization/${accountId}/impact_explorer`,
+    label: "Impact Explorer",
+    icon: resourcesIcon,
+  },
+  {
+    href: `/organization/${accountId}/shallow_detector`,
+    label: "shallow Detector",
+    icon: resourcesIcon,
+  },
+  {
+    href: `/organization/${accountId}/security_analyzer`,
+    label: "Security Analyzer",
+    icon: resourcesIcon,
+  },
 ];
 
 export default function OrgLayout({

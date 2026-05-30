@@ -4,6 +4,7 @@ from datetime import datetime, date
 from uuid import UUID
 import json
 import hashlib
+from collections import deque
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,20 +152,6 @@ def get_value(obj, key):
     return getattr(obj, key, None)
 
 
-async def get_relation_resource_service(db: AsyncSession, cloudIdentifier: str, resource_id: str, request: Request):
-    cloud = await getCloudAccountwithIdentifier_Repository(db=db, indentifier=cloudIdentifier, request=request)
-    
-    if not cloud:
-        raise HTTPException(status_code = 404, detail="No cloud account Found")
-    
-    relations = await db.execute(
-        select(ResourceRelationShip)
-        .where(ResourceRelationShip.cloud_account_id == cloud.id, ResourceRelationShip.source_id == resource_id)
-        .options(selectinload(ResourceRelationShip.source), selectinload(ResourceRelationShip.target))
-    )
-    
-    relations = relations.scalars().all()
-    return relations
 
 async def get_relation_resource_account(db: AsyncSession, cloudIdentifier: str,request: Request):
     cloud = await getCloudAccountwithIdentifier_Repository(db=db, indentifier=cloudIdentifier, request=request)
@@ -180,3 +167,94 @@ async def get_relation_resource_account(db: AsyncSession, cloudIdentifier: str,r
     
     relations = relations.scalars().all()
     return relations
+
+
+
+from collections import deque
+
+async def get_relation_resource_service(
+    db: AsyncSession,
+    cloudIdentifier: str,
+    resource_id: str,
+    request: Request
+):
+    cloud = await getCloudAccountwithIdentifier_Repository(
+        db=db,
+        indentifier=cloudIdentifier,
+        request=request
+    )
+
+    if not cloud:
+        raise HTTPException(
+            status_code=404,
+            detail="No cloud account found"
+        )
+
+    visited_nodes = set()
+    visited_edges = set()
+    queue = deque([resource_id])
+
+    relationships = []
+
+    while queue:
+        current_id = queue.popleft()
+
+        if current_id in visited_nodes:
+            continue
+
+        visited_nodes.add(current_id)
+
+        result = await db.execute(
+            select(ResourceRelationShip)
+            .where(ResourceRelationShip.cloud_account_id == cloud.id)
+            .options(
+                selectinload(ResourceRelationShip.source),
+                selectinload(ResourceRelationShip.target)
+            )
+        )
+
+        relations = result.scalars().all()
+
+        for relation in relations:
+            source_id = relation.source_id
+            target_id = relation.target_id
+
+            edge_key = (source_id, target_id)
+
+            if edge_key not in visited_edges:
+                visited_edges.add(edge_key)
+
+                relationships.append({
+                    "id": str(relation.id),
+                    "source_id": source_id,
+                    "target_id": target_id,
+                    "relation": relation.relation,
+                    "source": {
+                        "resource_name": (
+                            relation.source.resource_name
+                            if relation.source else None
+                        ),
+                        "resource_type": (
+                            relation.source.resource_type
+                            if relation.source else None
+                        ),
+                    },
+                    "target": {
+                        "resource_name": (
+                            relation.target.resource_name
+                            if relation.target else None
+                        ),
+                        "resource_type": (
+                            relation.target.resource_type
+                            if relation.target else None
+                        ),
+                    }
+                })
+
+            if source_id not in visited_nodes:
+                queue.append(source_id)
+
+            if target_id not in visited_nodes:
+                queue.append(target_id)
+
+    return relationships
