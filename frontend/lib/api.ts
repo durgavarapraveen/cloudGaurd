@@ -84,6 +84,7 @@ import {
   PaginationMeta,
   Permission,
   ResourceDetailResponse,
+  ResourceRelationship,
   ResourceSummaryResponse,
   Role,
   Roles,
@@ -95,20 +96,11 @@ import {
   UserProfile,
   UserRolesResponse,
 } from "./props";
-
-export interface ResourceMeta {
-  resource_type: string;
-  resource_name: string;
-  service?: string;
-}
-export interface ResourceRelationship {
-  id?: string;
-  source_id: string;
-  target_id: string;
-  relation: string;
-  source: ResourceMeta;
-  target: ResourceMeta;
-}
+import { IamResult } from "@/app/(org)/organization/[id]/iam/page";
+import {
+  IamEntity,
+  ResourceDetail,
+} from "@/app/(org)/organization/[id]/iam/users/page";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -1279,5 +1271,40 @@ export const graph = {
     const url = `${BASE}/relationship/build?cloud_account_id=${cloudAccountId}`;
     const res = await apiFetch(url);
     if (!res.ok) throw new Error("Failed to build relationships");
+  },
+};
+
+export const iam = {
+  async getIAMdetails(
+    cloud_account_id: string,
+    organization_id: string,
+  ): Promise<IamResult> {
+    const url = `${BASE}/iam/analysis?cloudIdentifier=${cloud_account_id}`;
+    const res = await apiFetch(url);
+    if (!res.ok) {
+      throw new Error("Failed to fetch IAM Resources");
+    }
+    return res.json();
+  },
+
+  async fetchIamEntities(cloudIdentifier: string): Promise<IamEntity[]> {
+    const url = `${BASE}/iam/entities?cloudIdentifier=${cloudIdentifier}`;
+    console.log(url);
+    const res = await apiFetch(url);
+    if (!res.ok) {
+      throw new Error(`Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async fetchResourceDetail(resourceId: string): Promise<ResourceDetail> {
+    const res = await apiFetch(
+      `${BASE}/resources/resource?resourceId=${resourceId}`,
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.detail ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
   },
 };

@@ -163,6 +163,8 @@ class Resources(Base):
         back_populates="resource"
     )
     
+    # Inside your Resources model
+
     outgoing_relationships = relationship(
         "ResourceRelationShip",
         foreign_keys="ResourceRelationShip.source_id",

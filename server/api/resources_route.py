@@ -1,15 +1,10 @@
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
-import uuid 
+
 
 from middlewares.userPermissions import require_permission
 from db.postgressDB import get_db
 
-from schemas.CloudAccounts_Schema import CreateNewCloudAccount
-
-from analyzer.iam_analyzer import run_iam_analyzer
 
 router = APIRouter(
     prefix="/resources",
@@ -21,7 +16,8 @@ from services.resource_service import (
     get_all_resources_from_DB_service,
     get_resource_summary,
     get_resource_summary_with_ID_Service,
-    get_resource_detail_for_summary_Service
+    get_resource_detail_for_summary_Service,
+    get_resource_with_ID_service
 )
 
 
@@ -97,6 +93,18 @@ async def get_resource_detail_for_summary(
     return await get_resource_detail_for_summary_Service(
         db=db,
         resourceSummaryID=resourceSummaryID,
+        resourceId=resourceId,
+        request=request
+    )
+
+@router.get("/resource")
+async def get_resource_details(
+    resourceId: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_resource_with_ID_service(
+        db=db,
         resourceId=resourceId,
         request=request
     )

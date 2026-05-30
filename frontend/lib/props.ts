@@ -432,3 +432,17 @@ export const ALL_STATUSES: DriftStatus[] = [
   "resolved",
   "ignored",
 ];
+
+export interface ResourceMeta {
+  resource_type: string;
+  resource_name: string;
+  service?: string;
+}
+export interface ResourceRelationship {
+  id?: string;
+  source_id: string;
+  target_id: string;
+  relation: string;
+  source: ResourceMeta;
+  target: ResourceMeta;
+}

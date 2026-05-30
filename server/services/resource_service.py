@@ -51,51 +51,51 @@ def sanitize_for_json(obj):
         return None
     return obj
 
-async def all_resources_service_aws(db: AsyncSession, account_identifier: str, services: list[str] | None , request: Request, schedular_id: str | None = None):
+async def all_resources_service_aws(
+    db: AsyncSession,
+    account_identifier: str,
+    services: list[str] | None,
+    request: Request,
+    schedular_id: str | None = None
+):
     organization_id = get_request_organization_id(request)
-    cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=account_identifier, request=request)
-    
+
+    cloudAccount = await getcloudAccountwithAccountIdentifier(
+        db,
+        account_identifier=account_identifier,
+        request=request
+    )
+
     if not cloudAccount:
-        raise HTTPException(
-            status_code=404,
-            detail="Cloud account not found"
-        )
-    
-    provider = cloudAccount.provider
-    
-    if provider != "aws":
-        raise HTTPException(
-            status_code=400,
-            detail="Only AWS supported currently"
-        )
-        
+        raise HTTPException(404, "Cloud account not found")
+
+    if cloudAccount.provider != "aws":
+        raise HTTPException(400, "Only AWS supported currently")
 
     creds = cloudAccount.credentials
     aws_key = creds.get("access_key_id")
     aws_secret = creds.get("secret_access_key")
 
     if not aws_key or not aws_secret:
-        raise HTTPException(status_code=400, detail="Missing AWS credentials")
+        raise HTTPException(400, "Missing AWS credentials")
 
     try:
         session = aws_session(aws_key=aws_key, aws_secret=aws_secret)
-    except ClientError as e:
-        error_code = e.response["Error"]["Code"]
-        
-        if error_code == "InvalidClientTokenId":
-            raise HTTPException(status_code=400, detail="Invalid AWS Access Key ID")
-        elif error_code == "AuthFailure":
-            raise HTTPException
+    except Exception:
+        raise HTTPException(400, "Invalid AWS credentials")
 
+    # ─────────────────────────────────────────
+    # FETCH AWS RESOURCES
+    # ─────────────────────────────────────────
     resources = await collect_all(session=session, services=services)
-    resource_count = resources["summary"]["total_resources"]
-    
+    total_count = resources["summary"]["total_resources"]
+
     summary = ResourceSummary(
         cloud_account_id=cloudAccount.id,
-        provider=provider,
+        provider="aws",
         resource_schedular_id=schedular_id,
         organization_id=organization_id,
-        total_resources_fetched_count=resource_count,
+        total_resources_fetched_count=total_count,
         updated_resources_count=0,
         newly_added_resources_count=0,
         deleted_resources_count=0,
@@ -104,132 +104,166 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
         newly_added_resource_ids=[],
         deleted_resources_ids=[]
     )
-    
+
     db.add(summary)
     await db.flush()
-    
-    existing_resources = await get_all_resource(db, services=services,cloud_account_id=cloudAccount.id ,request=request) 
-    
-    existing_map = {}
-    
-    if existing_resources:
-        existing_map = {
-            (
-                r.resource_id,
-                r.region,
-                r.service
-            ): r
-            for r in existing_resources
-        }
-    
-    updated_resource = []
-    new_resources = []
+
+    # ─────────────────────────────────────────
+    # LOAD EXISTING RESOURCES
+    # ─────────────────────────────────────────
+    existing_resources = await get_all_resource(
+        db,
+        services=services,
+        cloud_account_id=cloudAccount.id,
+        request=request
+    )
+
+    # KEY MUST MATCH DB UNIQUE CONSTRAINT
+    # (org, account, resource_id, region)
+    existing_map = {
+        (r.resource_id, r.region): r
+        for r in (existing_resources or [])
+    }
+
+    # ─────────────────────────────────────────
+    # FLATTEN AWS RESOURCES
+    # ─────────────────────────────────────────
     all_resources = []
-    deleted_resources = []
-    current_keys = set()
-    
+
     for service_name, svc_resources in resources["resources"].items():
         for res in svc_resources:
-            res.setdefault("service", service_name)
-        all_resources.extend(svc_resources)
-    
+            res["service"] = service_name
+            all_resources.append(res)
+
+    # ─────────────────────────────────────────
+    # PROCESSING STATE
+    # ─────────────────────────────────────────
+    seen = set()
+    current_keys = set()
+
+    new_resources = []
+    updated_resources = []
+    deleted_resources = []
+
+    # ─────────────────────────────────────────
+    # UPSERT LOGIC IN MEMORY
+    # ─────────────────────────────────────────
     for res in all_resources:
-       
+
         sanitized = sanitize_for_json(res)
         hash_value = hash_resource(sanitized)
+
         key = (
             sanitized.get("resource_id"),
-            sanitized.get("region"),
-            sanitized.get("service")
+            sanitized.get("region")
         )
+
+        if key in seen:
+            continue
+        seen.add(key)
         current_keys.add(key)
+
         existing = existing_map.get(key)
-        # NEW RESOURCE
+
+        # ───────── NEW RESOURCE ─────────
         if not existing:
             resource_obj = Resources(
                 organization_id=organization_id,
                 cloud_account_id=cloudAccount.id,
-                provider=provider,
+                provider="aws",
                 service=sanitized.get("service"),
                 resource_type=sanitized.get("resource_type"),
                 resource_id=sanitized.get("resource_id"),
                 resource_name=sanitized.get("resource_name"),
                 arn=sanitized.get("arn"),
                 region=sanitized.get("region"),
-                tags=sanitize_for_json(res.get("tags", {})),        
-                configuration=sanitize_for_json(res.get("configuration", {})), 
+                tags=sanitize_for_json(res.get("tags", {})),
+                configuration=sanitize_for_json(res.get("configuration", {})),
                 hashValue=hash_value,
                 resource_summary_id=summary.id
             )
-            db.add(resource_obj)            
+
+            db.add(resource_obj)
+
             new_resources.append({
                 "resource_id": sanitized.get("resource_id"),
                 "service": sanitized.get("service")
             })
 
-        # UPDATED RESOURCE
+        # ───────── UPDATE RESOURCE ─────────
         else:
             existing.is_deleted = False
+
             if existing.hashValue != hash_value:
                 existing.resource_name = sanitized.get("resource_name")
-                existing.tags = sanitized.get("tags", {})              # ✅ sanitized
-                existing.configuration = sanitized.get("configuration", {})  # ✅ sanitized
+                existing.tags = sanitize_for_json(res.get("tags", {}))
+                existing.configuration = sanitize_for_json(res.get("configuration", {}))
                 existing.hashValue = hash_value
-                updated_resource.append({
+
+                updated_resources.append({
                     "resource_id": sanitized.get("resource_id"),
                     "service": sanitized.get("service")
                 })
-                
-                await create_new_drift(db=db, cloudAccountId=cloudAccount.id, issue_with_resource="updated", request=request, resourceId=existing.id)
-                
-    existing_keys = set(existing_map.keys())
 
+                await create_new_drift(
+                    db=db,
+                    cloudAccountId=cloudAccount.id,
+                    issue_with_resource="updated",
+                    request=request,
+                    resourceId=existing.id
+                )
+
+    # ─────────────────────────────────────────
+    # HANDLE DELETED RESOURCES
+    # ─────────────────────────────────────────
+    existing_keys = set(existing_map.keys())
     deleted_keys = existing_keys - current_keys
-    
+
     for key in deleted_keys:
-        print(f"Deleted bucket {key}")
         resource = existing_map[key]
+
+        resource.is_deleted = True
+
         deleted_resources.append({
             "resource_id": resource.resource_id,
             "service": resource.service
         })
-        
-        # make resources is_deleted as True
-        resource.is_deleted = True
-        await create_new_drift(db=db, cloudAccountId=cloudAccount.id, issue_with_resource="deleted", request=request, resourceId=resource.id)
 
-        # await db.delete(resource)
-                
-    summary.updated_resources_count = len(updated_resource)
+        await create_new_drift(
+            db=db,
+            cloudAccountId=cloudAccount.id,
+            issue_with_resource="deleted",
+            request=request,
+            resourceId=resource.id
+        )
+
+    # ─────────────────────────────────────────
+    # UPDATE SUMMARY
+    # ─────────────────────────────────────────
+    summary.updated_resources_count = len(updated_resources)
     summary.newly_added_resources_count = len(new_resources)
-    summary.newly_added_resource_ids = new_resources
-    summary.updated_resource_ids = updated_resource
-    summary.deleted_resources_ids = deleted_resources
     summary.deleted_resources_count = len(deleted_resources)
+
+    summary.updated_resource_ids = updated_resources
+    summary.newly_added_resource_ids = new_resources
+    summary.deleted_resources_ids = deleted_resources
+    
+    await build_relationships_service(
+        db=db,
+        cloud_account_id=cloudAccount.id
+    )
+
     await db.commit()
-    
-    # await build_relationships_service(
-    #     db=db,
-    #     cloud_account_id=cloudAccount.id,
-    #     organization_id=organization_id
-    # )
-    
     await db.refresh(summary)
 
     return {
         "success": True,
-
         "new_resources": len(new_resources),
-
-        "updated_resources": len(updated_resource),
-
-        "new_resource_ids": new_resources,
-
-        "updated_resource_ids": updated_resource,
-        
-        "deleted_resource_ids": deleted_resources,
-        
+        "updated_resources": len(updated_resources),
         "deleted_resources": len(deleted_resources),
+        "new_resource_ids": new_resources,
+        "updated_resource_ids": updated_resources,
+        "deleted_resource_ids": deleted_resources,
     }
                 
 
@@ -292,3 +326,11 @@ async def get_all_resource(db: AsyncSession, services: list[str],cloud_account_i
     resources = result.scalars().all()
     return resources
     
+
+async def get_resource_with_ID_service(db=AsyncSession, resourceId=str, request=Request):
+    resource = await db.execute(
+        select(Resources)
+        .where(Resources.id == resourceId)
+    )
+    resource = resource.scalar_one_or_none()
+    return resource

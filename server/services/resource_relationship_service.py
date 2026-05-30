@@ -8,31 +8,31 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 
 from models.resource_relationship_model import ResourceRelationShip
 from models.relationship_rules_model import RelationShipRule
 from models.resources_model import Resources
 
-async def build_relationships_service(db: AsyncSession, cloud_account_id: str , organizationId: str):
+from repository.cloudAccount_repository import getCloudAccountwithIdentifier_Repository
+
+async def build_relationships_service(db: AsyncSession, cloud_account_id: str):
     
     resources = await db.execute(
         select(Resources).where(
             Resources.cloud_account_id == cloud_account_id,
-            Resources.is_deleted == False
+            Resources.is_deleted == False,
         )
     )
 
     resources = resources.scalars().all()
     
-    for r in resources:
-        print(r.__dict__)
-    
-    
     resource_index = {}
     for r in resources:
         resource_index[
-            (r.service, r.resource_id)
+            (r.resource_type, r.resource_id)
         ] = r
+        
     
     await db.execute(
         delete(ResourceRelationShip).where(
@@ -49,20 +49,18 @@ async def build_relationships_service(db: AsyncSession, cloud_account_id: str , 
     relationships = []
 
     for rule in rules:
-        
         source_resources = [
             r for r in resources
             if r.resource_type == rule.source_type
         ]
         
-
         for source in source_resources:
-            print(source)
             values = extract_values(
-                source.configuration,
-                rule.source_field
+                source,
+                rule.target_field
             )
-            print(f"rule .................{values}")
+            
+            print(f"{source.resource_type} => {values}")
 
             if not values:
                 continue
@@ -80,7 +78,7 @@ async def build_relationships_service(db: AsyncSession, cloud_account_id: str , 
                 )
 
                 if target:
-
+                    
                     relationships.append(
                         ResourceRelationShip(
                             source_id=source.id,
@@ -91,17 +89,18 @@ async def build_relationships_service(db: AsyncSession, cloud_account_id: str , 
                         )
                     )
             
-    print(relationships)
+    if relationships:
+        db.add_all(relationships)
+        await db.commit()
             
     
     
 def extract_values(data, path):
 
     keys = path.split(".")
-
     current = data
 
-    for key in keys:
+    for i, key in enumerate(keys):
 
         #
         # Array syntax
@@ -109,15 +108,13 @@ def extract_values(data, path):
 
         if "[]" in key:
 
-            key = key.replace("[]", "")
+            clean_key = key.replace("[]", "")
 
-            arr = current.get(key, [])
+            arr = get_value(current, clean_key) or []
 
             result = []
 
-            remaining = ".".join(
-                keys[keys.index(key + "[]") + 1:]
-            )
+            remaining = ".".join(keys[i + 1:])
 
             for item in arr:
 
@@ -128,18 +125,58 @@ def extract_values(data, path):
 
                 if isinstance(value, list):
                     result.extend(value)
-                elif value:
+
+                elif value is not None:
                     result.append(value)
 
             return result
 
-        if not isinstance(current, dict):
-            return None
+        #
+        # Normal access
+        #
 
-        current = current.get(key)
+        current = get_value(current, key)
 
         if current is None:
             return None
 
     return current
 
+
+def get_value(obj, key):
+
+    if isinstance(obj, dict):
+        return obj.get(key)
+
+    return getattr(obj, key, None)
+
+
+async def get_relation_resource_service(db: AsyncSession, cloudIdentifier: str, resource_id: str, request: Request):
+    cloud = await getCloudAccountwithIdentifier_Repository(db=db, indentifier=cloudIdentifier, request=request)
+    
+    if not cloud:
+        raise HTTPException(status_code = 404, detail="No cloud account Found")
+    
+    relations = await db.execute(
+        select(ResourceRelationShip)
+        .where(ResourceRelationShip.cloud_account_id == cloud.id, ResourceRelationShip.source_id == resource_id)
+        .options(selectinload(ResourceRelationShip.source), selectinload(ResourceRelationShip.target))
+    )
+    
+    relations = relations.scalars().all()
+    return relations
+
+async def get_relation_resource_account(db: AsyncSession, cloudIdentifier: str,request: Request):
+    cloud = await getCloudAccountwithIdentifier_Repository(db=db, indentifier=cloudIdentifier, request=request)
+    
+    if not cloud:
+        raise HTTPException(status_code = 404, detail="No cloud account Found")
+    
+    relations = await db.execute(
+        select(ResourceRelationShip)
+        .where(ResourceRelationShip.cloud_account_id == cloud.id)
+        .options(selectinload(ResourceRelationShip.source), selectinload(ResourceRelationShip.target))
+    )
+    
+    relations = relations.scalars().all()
+    return relations

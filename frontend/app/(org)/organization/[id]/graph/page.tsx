@@ -27,7 +27,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { graph } from "@/lib/api";
-import type { ResourceMeta, ResourceRelationship } from "@/lib/api";
+import type { ResourceMeta, ResourceRelationship } from "@/lib/props";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,22 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Database, Search, ChevronRight, Server } from "lucide-react";
+import { Search, ChevronRight, Server } from "lucide-react";
 import PathName from "@/components/PathName";
 import { awsScannerApi } from "@/lib/api";
 import { PaginationMeta, ResourceDetailResponse } from "@/lib/props";
-
-type Resource = {
-  id: string;
-  resource_id: string;
-  resource_name: string | null;
-  service: string;
-  region: string;
-  resource_type: string;
-  configuration: Record<string, unknown>;
-  tags: unknown[];
-};
 
 const SERVICES = ["ec2", "s3", "iam", "rds", "ecs", "ebs", "kms", "ecr"];
 
@@ -53,7 +41,6 @@ export default function ResourcesDBPage() {
           page_size: 50,
           service: svc ?? undefined,
         });
-        console.log(res.data);
         setResources(res.data);
         setPagination(res.pagination);
 

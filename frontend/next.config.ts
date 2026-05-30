@@ -35,6 +35,11 @@ const nextConfig: NextConfig = {
         destination: "/organization/:id/schedular/details/:schId",
         permanent: false,
       },
+      {
+        source: "/organization/:id/iam",
+        destination: "/organization/:id/iam/users",
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

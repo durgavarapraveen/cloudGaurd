@@ -2,14 +2,16 @@
 
 import json
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
+from fastapi import  Request, HTTPException
 from models.resources_model import Resources
 
 logger = logging.getLogger(__name__)
+
+from repository.cloudAccount_repository import getCloudAccountwithIdentifier_Repository
 
 # ─────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -694,14 +696,20 @@ def run_permissions_boundary_checks(
 # ─────────────────────────────────────────────────────────────
 # MAIN ENTRY POINT — run everything on your DB resources
 # ─────────────────────────────────────────────────────────────
-
+def get_request_organization_id(request: Request):
+    return (
+        getattr(request.state, "organizationId", None)
+        or getattr(request.state, "organizationID", None)
+    )
+    
+    
 async def run_iam_analyzer(
     # resources: list[dict],
     # trusted_account_ids: list[str] | None = None,
     # credential_report: list[dict] | None = None,
     db: AsyncSession,
-    cloud_account_id: str,
-    organization_id: str
+    cloudIdentifier: str,
+    request: Request
 ) -> dict:
     """
     Pass in all IAM resources fetched from your DB.
@@ -716,10 +724,13 @@ async def run_iam_analyzer(
         )
     """
     all_findings = []
-    
+    cloud = await getCloudAccountwithIdentifier_Repository(db=db, indentifier=cloudIdentifier, request=request)
+    if not cloud:
+        raise HTTPException(status_code = 404, detail="No cloud Account FOund")
+    organization_id = get_request_organization_id(request)
     all_resources = await db.execute(
         select(Resources)
-        .where(Resources.cloud_account_id == cloud_account_id, Resources.organization_id == organization_id)
+        .where(Resources.cloud_account_id == cloud.id, Resources.organization_id == organization_id)
     )
     
     resources = [
