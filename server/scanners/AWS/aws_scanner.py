@@ -59,7 +59,7 @@ services_all = ["s3", "iam", "ec2", "rds", "acm", "efs", "ebs", "ram", "privatel
 # MAIN COLLECTOR
 # ─────────────────────────────────────────────
 
-async def collect_all(session, services=None, regions=None):
+async def collect_all(session, regions=None):
     """
     Collect AWS resources for requested services.
 
@@ -70,8 +70,7 @@ async def collect_all(session, services=None, regions=None):
     if regions is None:
         regions = ["ap-south-1"]
         
-    if services is None or "ALL" in services:
-        services = services_all
+    services = services_all
     
     # Identity check
     sts = session.client("sts")

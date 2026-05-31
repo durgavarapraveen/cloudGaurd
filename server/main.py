@@ -1,10 +1,9 @@
-import os
+
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from datetime import datetime, timezone
-from apscheduler.triggers.date import DateTrigger
 
 from api.yaml import router as yaml_router
 from api.auth_routes import router as auth_router
@@ -29,9 +28,11 @@ from middlewares.userVerificationMiddleware import AuthMiddleware
 from models.Base import Base
 from models.resourceSchedular_model import ResourceSchedular
 from schedulars.schedular import scheduler
-from schedulars.resourceSchedular_job import run_scheduler_job  # ✅ async function
+from schedulars.resourceSchedular_job import run_scheduler_job, schedular_resources  # ✅ async function
 from apscheduler.triggers.interval import IntervalTrigger
 from services.resourceSchedular_service import get_next_start_date, get_scheduled_time_today
+
+from services.resource_service import all_resources_service_aws
 
 
 # ✅ Define lifespan BEFORE app
@@ -50,45 +51,58 @@ async def lifespan(app: FastAPI):
 
     # Reload active schedulers from DB
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(ResourceSchedular).where(ResourceSchedular.is_active == True)
-        )
-        active_schedulers = result.scalars().all()
+        # result = await db.execute(
+        #     select(ResourceSchedular).where(ResourceSchedular.is_active == True)
+        # )
+        # active_schedulers = result.scalars().all()
+        # now = datetime.now(timezone.utc)
+
+        # for s in active_schedulers:
+        #     if s.stop_date and now > s.stop_date:
+        #         s.is_active = False
+        #         continue
+
+        #     scheduler.add_job(
+        #         run_scheduler_job,          # ✅ async function, AsyncIOScheduler handles it
+        #         trigger=IntervalTrigger(
+        #             hours=s.frequency,      # ✅ hours not days (your model uses hours)
+        #             start_date=get_next_start_date(s.fetch_time),
+        #             end_date=s.stop_date,
+        #             timezone=timezone.utc,
+        #         ),
+        #         id=str(s.id),
+        #         args=[str(s.id)],
+        #         replace_existing=True,
+        #     )
+
+        #     scheduled_today = get_scheduled_time_today(s.fetch_time)
+        #     last_scan = s.last_scan
+        #     missed_today = scheduled_today <= now and (
+        #         last_scan is None or last_scan < scheduled_today
+        #     )
+        #     if missed_today:
+        #         scheduler.add_job(
+        #             run_scheduler_job,
+        #             trigger=DateTrigger(run_date=now, timezone=timezone.utc),
+        #             id=f"{s.id}:catchup",
+        #             args=[str(s.id)],
+        #             replace_existing=True,
+        #         )
+
+        # await db.commit()
+        
         now = datetime.now(timezone.utc)
-
-        for s in active_schedulers:
-            if s.stop_date and now > s.stop_date:
-                s.is_active = False
-                continue
-
-            scheduler.add_job(
-                run_scheduler_job,          # ✅ async function, AsyncIOScheduler handles it
+        scheduler.add_job(
+                schedular_resources,          
                 trigger=IntervalTrigger(
-                    hours=s.frequency,      # ✅ hours not days (your model uses hours)
-                    start_date=get_next_start_date(s.fetch_time),
-                    end_date=s.stop_date,
+                    minutes=30,     
+                    start_date=now,
+                    end_date=None,
                     timezone=timezone.utc,
                 ),
-                id=str(s.id),
-                args=[str(s.id)],
+                id="global-resource-sync",
                 replace_existing=True,
             )
-
-            scheduled_today = get_scheduled_time_today(s.fetch_time)
-            last_scan = s.last_scan
-            missed_today = scheduled_today <= now and (
-                last_scan is None or last_scan < scheduled_today
-            )
-            if missed_today:
-                scheduler.add_job(
-                    run_scheduler_job,
-                    trigger=DateTrigger(run_date=now, timezone=timezone.utc),
-                    id=f"{s.id}:catchup",
-                    args=[str(s.id)],
-                    replace_existing=True,
-                )
-
-        await db.commit()
 
     yield  # app runs here
 
@@ -135,3 +149,25 @@ app.include_router(security_analyzer_router)
 @app.get("/")
 def read_root():
     return {"message": "Welcome to CloudGuard API!"}
+
+import json
+
+@app.post("/webhooks/aws-events")
+async def sns_webhook(request: Request):
+    payload = await request.json()
+    
+    if payload.get("Type") != "Notification":
+        return {"status": "ignored"}
+    
+    message = json.loads(payload["Message"])
+
+    print("AWS Event:", message)
+    
+    source = message["source"]
+    if source != "aws.cloudshell":
+        print(source)
+        
+        
+        
+
+    return {"status": "processed"}

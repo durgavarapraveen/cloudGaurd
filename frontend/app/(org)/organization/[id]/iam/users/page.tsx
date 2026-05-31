@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import PathName from "@/components/PathName";
 import { getErrorMessage } from "@/lib/errors";
-import { iam } from "@/lib/api";
+import { awsScannerApi, iam } from "@/lib/api";
+import { ResourceDetail } from "@/lib/props";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,14 +13,6 @@ export interface IamEntity {
   id: string;
   resource_type: string;
   resource_id: string;
-}
-
-export interface ResourceDetail {
-  id: string;
-  resource_name: string;
-  resource_type: string;
-  resource_id: string;
-  [key: string]: unknown; // backend may return any extra fields
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -412,7 +405,7 @@ export default function IamEntitiesPage() {
     setDetail(null);
     setDetailLoading(true);
     try {
-      const data = await iam.fetchResourceDetail(entity.id);
+      const data = await awsScannerApi.fetchResourceDetail(entity.id);
       setDetail(data);
     } catch (e: unknown) {
       setDetail(null);

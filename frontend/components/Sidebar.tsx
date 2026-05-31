@@ -20,6 +20,7 @@ type SidebarProps = {
 export default function Sidebar({ nav }: SidebarProps) {
   const path = usePathname();
   const router = useRouter();
+  const provider = window.localStorage.getItem("CLOUD_PROVIDER");
   const [profileOpen, setProfileOpen] = useState(false);
   const [username, setUsername] = useState("User");
   const [email, setEmail] = useState("");
@@ -89,16 +90,19 @@ export default function Sidebar({ nav }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-2">
-        <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 px-1">
-          Provider
+      {path && (
+        <div className="px-4 pt-4 pb-2">
+          <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 px-1">
+            Provider
+          </div>
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-orange-500/10 border border-orange-500/20">
+            <div className="w-2 h-2 rounded-full bg-orange-400 pulse-dot" />
+            <span className="text-[11px] text-orange-300 font-medium">
+              {provider}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-orange-500/10 border border-orange-500/20">
-          <div className="w-2 h-2 rounded-full bg-orange-400 pulse-dot" />
-          <span className="text-[11px] text-orange-300 font-medium">AWS</span>
-          <span className="ml-auto text-[10px] text-slate-500">ap-south-1</span>
-        </div>
-      </div>
+      )}
 
       <nav className="flex-1 px-3 pt-3 space-y-0.5">
         <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 px-2">
@@ -154,9 +158,7 @@ export default function Sidebar({ nav }: SidebarProps) {
                   {username}
                 </p>
                 {email && (
-                  <p className="truncate text-[11px] text-slate-500">
-                    {email}
-                  </p>
+                  <p className="truncate text-[11px] text-slate-500">{email}</p>
                 )}
               </div>
             </div>

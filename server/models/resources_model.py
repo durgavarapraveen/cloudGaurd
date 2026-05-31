@@ -1,7 +1,7 @@
 # models/Resources.py
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     String,
@@ -102,14 +102,14 @@ class Resources(Base):
 
     first_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         server_default=func.now()
     )
 
     last_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
         server_default=func.now()
     )
     
@@ -176,5 +176,12 @@ class Resources(Base):
         "ResourceRelationShip",
         foreign_keys="ResourceRelationShip.target_id",
         back_populates="target",
+        cascade="all, delete-orphan"
+    )
+    
+    versions = relationship(
+        "ResourceVersion",
+        back_populates="resource",
+        order_by="ResourceVersion.version_number",
         cascade="all, delete-orphan"
     )

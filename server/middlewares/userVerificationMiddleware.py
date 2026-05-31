@@ -54,6 +54,9 @@ def normalize_tenant_slug(slug: str | None) -> str | None:
 class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
+        
+        if request.url.path == "/webhooks/aws-events":
+         return await call_next(request)
 
         path = request.url.path
         if is_excluded_route(path):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -17,7 +17,8 @@ from services.resource_service import (
     get_resource_summary,
     get_resource_summary_with_ID_Service,
     get_resource_detail_for_summary_Service,
-    get_resource_with_ID_service
+    get_resource_with_ID_service,
+    get_resource_version_with_ID_service
 )
 
 
@@ -58,16 +59,14 @@ async def get_resource_db(
 async def get_resource_aws(
     account_identifier: str,
     request: Request,
-    services: str | None = None,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
-    service_list = services.split(",") if services else []
     return await all_resources_service_aws(
         db=db,
         account_identifier=account_identifier,
-        services=service_list,
         request=request,
-        schedular_id=None
+        background_tasks=background_tasks
     )
 
 
@@ -104,6 +103,18 @@ async def get_resource_details(
     db: AsyncSession = Depends(get_db)
 ):
     return await get_resource_with_ID_service(
+        db=db,
+        resourceId=resourceId,
+        request=request
+    )
+    
+@router.get("/resource/version")
+async def get_resource_version(
+    resourceId: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_resource_version_with_ID_service(
         db=db,
         resourceId=resourceId,
         request=request

@@ -83,8 +83,11 @@ import {
   PaginatedDrifts,
   PaginationMeta,
   Permission,
+  ResourceDetail,
   ResourceDetailResponse,
+  ResourceDetailsSummary,
   ResourceRelationship,
+  ResourceResponse,
   ResourceSummaryResponse,
   Role,
   Roles,
@@ -97,10 +100,7 @@ import {
   UserRolesResponse,
 } from "./props";
 import { IamResult } from "@/app/(org)/organization/[id]/iam/page";
-import {
-  IamEntity,
-  ResourceDetail,
-} from "@/app/(org)/organization/[id]/iam/users/page";
+import { IamEntity } from "@/app/(org)/organization/[id]/iam/users/page";
 import { ShadowResponse } from "@/app/(org)/organization/[id]/shallow_detector/page";
 import { AnalysisReport } from "@/app/(org)/organization/[id]/security_analyzer/page";
 
@@ -790,54 +790,17 @@ export const dashboardApi = {
 // ─── AWS Scanner  /aws/scanner/* ──────────────────────────────
 export const awsScannerApi = {
   // Raw resource collection — maps to GET /aws/scanner/scan
-  scan: async ({
-    services,
-    account_identifier,
-  }: {
-    services: string[];
-    account_identifier: string;
-  }): Promise<ScannerResult> => {
-    if (!services || services.length === 0) {
-      throw new Error("No services selected");
-    }
-
-    const serviceParam = services.join(",");
-
+  scan: async ({ account_identifier }: { account_identifier: string }) => {
     const res = await apiFetch(
-      `${BASE}/resources/resources_cloud/${account_identifier}?services=${serviceParam}`,
+      `${BASE}/resources/resources_cloud/${account_identifier}`,
       {
         headers: authHeaders(),
       },
     );
-    console.log(res);
-
     if (!res.ok) {
       throw new Error(`Scanner failed: ${res.statusText}`);
     }
-
     return res.json();
-  },
-
-  downloadExcel: async ({
-    services,
-  }: {
-    services: string[];
-  }): Promise<Blob> => {
-    if (!services || services.length === 0) {
-      throw new Error("No services selected");
-    }
-    const serviceParam = encodeURIComponent(services.join(","));
-    const res = await apiFetch(`${BASE}/aws/scanner/export/${serviceParam}`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error(`Scanner failed: ${res.statusText}`);
-    const blob = await res.blob();
-    const urls = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = urls;
-    a.download = "aws_resources.xlsx";
-    a.click();
-    return blob;
   },
 
   fetch_resources_db: async (): Promise<DashboardScanDetail> => {
@@ -920,8 +883,9 @@ export const awsScannerApi = {
     page_size?: number;
     service?: string;
   }): Promise<{
-    data: ResourceDetailResponse[];
+    data: ResourceResponse[];
     pagination: PaginationMeta;
+    summary: ResourceDetailsSummary;
   }> => {
     const params = new URLSearchParams({
       page: String(page),
@@ -936,6 +900,28 @@ export const awsScannerApi = {
 
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Resources fetch failed"));
+    }
+    return res.json();
+  },
+
+  async fetchResourceDetail(resourceId: string): Promise<ResourceDetail> {
+    const res = await apiFetch(
+      `${BASE}/resources/resource?resourceId=${resourceId}`,
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.detail ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async fetchResourceVersions(resourceId: string) {
+    const res = await apiFetch(
+      `${BASE}/resources/resource/version?resourceId=${resourceId}`,
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.detail ?? `Request failed: ${res.status}`);
     }
     return res.json();
   },
@@ -1295,17 +1281,6 @@ export const iam = {
     const res = await apiFetch(url);
     if (!res.ok) {
       throw new Error(`Request failed: ${res.status}`);
-    }
-    return res.json();
-  },
-
-  async fetchResourceDetail(resourceId: string): Promise<ResourceDetail> {
-    const res = await apiFetch(
-      `${BASE}/resources/resource?resourceId=${resourceId}`,
-    );
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body?.detail ?? `Request failed: ${res.status}`);
     }
     return res.json();
   },

@@ -301,15 +301,24 @@ export interface ResourceSummaryResponse {
 }
 
 export interface ResourceDetailResponse {
+  data: [ResourceResponse];
+  summary: ResourceDetailsSummary;
+  pagination: PaginationMeta;
+}
+
+export interface ResourceDetailsSummary {
+  total_resources: string;
+  total_services: number;
+  resources_per_service: Record<string, number>;
+}
+
+export interface ResourceResponse {
   id: string;
   service: string;
   resource_type: string;
   resource_id: string;
-  resource_name: string | null;
-  arn: string | null;
-  region: string | null;
-  tags: Record<string, unknown>;
-  configuration: Record<string, unknown>;
+  resource_name: string;
+  arn: string;
 }
 
 export type PaginationMeta = {
@@ -426,7 +435,6 @@ export interface PaginatedDrifts {
 }
 
 export const ALL_STATUSES: DriftStatus[] = [
-  // "new",
   "assigned",
   "in-progress",
   "resolved",
@@ -445,4 +453,39 @@ export interface ResourceRelationship {
   relation: string;
   source: ResourceMeta;
   target: ResourceMeta;
+}
+
+export interface NodeData {
+  label: string;
+  resourceType: string;
+  resourceId: string;
+  connectionCount: number;
+  isFocal?: boolean; // true for the blast-radius centre node
+  depth?: number; // hop distance from focal node
+  [key: string]: unknown;
+}
+
+export interface Graph_ResourceRow {
+  id: string;
+  name: string;
+  type: string;
+  connectionCount: number;
+}
+
+export interface ResourceDetail {
+  id: string;
+  resource_name: string;
+  resource_type: string;
+  resource_id: string;
+  [key: string]: unknown; // backend may return any extra fields
+}
+
+export interface VersionHistory {
+  version_number: number;
+  hashValue: string;
+  recorded_at: string;
+  id: string;
+  resource_id: string;
+  resource_name: string;
+  [key: string]: unknown;
 }

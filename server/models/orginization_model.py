@@ -141,3 +141,9 @@ class Organization(Base):
         cascade="all, delete-orphan"
     )
     
+
+    resource_last_fetch = relationship(
+        "ResourceLastFetched",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )

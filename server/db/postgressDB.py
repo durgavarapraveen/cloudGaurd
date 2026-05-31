@@ -27,6 +27,8 @@ from models.drift_models import DriftResources
 from models.comments_model import Comments
 from models.relationship_rules_model import RelationShipRule
 from models.resource_relationship_model import ResourceRelationShip
+from models.resource_lastfetched_model import ResourceLastFetched
+from models.resource_version_model import ResourceVersion
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

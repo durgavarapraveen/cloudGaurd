@@ -16,8 +16,10 @@ import Link from "next/link";
 
 import { cloudAccounts } from "@/lib/api";
 import { CloudAccount } from "@/lib/props";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
+  const router = useRouter();
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -94,6 +96,11 @@ export default function Page() {
       },
     ];
   }, [accounts]);
+
+  const handleClicked = (account: CloudAccount) => {
+    window.localStorage.setItem("CLOUD_PROVIDER", account.provider);
+    router.push(`/organization/${account.account_identifier}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#020617] px-4 py-8 text-white">
@@ -187,12 +194,15 @@ export default function Page() {
                         {account.account_name || "Unnamed Account"}
                       </td>
 
-                      <td className="px-4 py-4 text-slate-300">
-                        <Link
+                      <td
+                        className="px-4 py-4 text-slate-300"
+                        onClick={() => handleClicked(account)}
+                      >
+                        {/* <Link
                           href={`/organization/${account.account_identifier}`}
-                        >
-                          {account.account_identifier || "unnamed identifier"}
-                        </Link>
+                        > */}
+                        {account.account_identifier || "unnamed identifier"}
+                        {/* </Link> */}
                       </td>
 
                       <td className="px-4 py-4">{account.region || "-"}</td>

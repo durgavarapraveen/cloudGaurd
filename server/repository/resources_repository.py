@@ -76,6 +76,7 @@ async def getcloudAccountwithAccountIdentifier(db:AsyncSession, account_identifi
     
     return cloudAccount
 
+
 async def get_aLL_resources_DB_Repository(
     db, cloud_account_id, request,
     page=1, page_size=50, service_filter=None
@@ -83,25 +84,42 @@ async def get_aLL_resources_DB_Repository(
     organization_id = get_request_organization_id(request)
     offset = (page - 1) * page_size
 
-    query = (
-        select(Resources)
-        .where(
-            Resources.cloud_account_id == cloud_account_id,
-            Resources.organization_id == organization_id,
-            Resources.is_deleted == False
-        )
-    )
+    base_where = [
+        Resources.cloud_account_id == cloud_account_id,
+        Resources.organization_id == organization_id,
+        Resources.is_deleted == False
+    ]
+
+    query = select(Resources).where(*base_where)
 
     if service_filter:
         query = query.where(Resources.service.in_(service_filter))
 
-    # total count
+    # ─────────────────────────────────────────
+    # TOTAL COUNT (with filter)
+    # ─────────────────────────────────────────
     count_result = await db.execute(
         select(func.count()).select_from(query.subquery())
     )
     total = count_result.scalar()
 
-    # paginated results
+    # ─────────────────────────────────────────
+    # RESOURCES PER SERVICE (always unfiltered)
+    # ─────────────────────────────────────────
+    service_counts_result = await db.execute(
+        select(Resources.service, func.count().label("count"))
+        .where(*base_where)
+        .group_by(Resources.service)
+        .order_by(Resources.service)
+    )
+    service_breakdown = {
+        row.service: row.count
+        for row in service_counts_result.all()
+    }
+
+    # ─────────────────────────────────────────
+    # PAGINATED RESULTS
+    # ─────────────────────────────────────────
     result = await db.execute(
         query.order_by(Resources.service, Resources.resource_id)
              .offset(offset)
@@ -110,7 +128,23 @@ async def get_aLL_resources_DB_Repository(
     resources = result.scalars().all()
 
     return {
-        "data": [serialize_resource(resource) for resource in resources],
+        "data": [
+            {
+                "id": str(resource.id),
+                "service": resource.service,
+                "resource_type": resource.resource_type,
+                "resource_id": resource.resource_id,
+                "resource_name": resource.resource_name,
+                "arn": resource.arn,
+            }
+            for resource in resources
+        ],
+        "summary": {
+            "total_resources": total,
+            "total_services": len(service_breakdown),
+            "resources_per_service": service_breakdown
+            # e.g. {"s3": 12, "rds": 4, "ec2": 30}
+        },
         "pagination": {
             "page": page,
             "page_size": page_size,
@@ -118,7 +152,8 @@ async def get_aLL_resources_DB_Repository(
             "total_pages": ceil(total / page_size)
         }
     }
- 
+
+
 async def get_resource_summary_DB_Repository(db: AsyncSession, cloud_account_id: str ,request: Request):
     organization_id = get_request_organization_id(request)
     summary = await db.execute(

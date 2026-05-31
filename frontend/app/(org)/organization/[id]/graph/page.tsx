@@ -12,22 +12,18 @@ import {
   useNodesState,
   useEdgesState,
   MarkerType,
-  Handle,
-  Position,
-  getBezierPath,
-  BaseEdge,
   useReactFlow,
   ReactFlowProvider,
   type Edge,
-  type EdgeProps,
-  type EdgeTypes,
   type Node,
-  type NodeProps,
-  type NodeTypes,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 import { graph } from "@/lib/api";
-import type { ResourceMeta, ResourceRelationship } from "@/lib/props";
+import type {
+  Graph_ResourceRow,
+  NodeData,
+  ResourceMeta,
+  ResourceRelationship,
+} from "@/lib/props";
 import {
   computeImpactLayout,
   EDGE_TYPES,
@@ -39,23 +35,6 @@ import {
 } from "@/components/computeImpactLayout";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface NodeData {
-  label: string;
-  resourceType: string;
-  resourceId: string;
-  connectionCount: number;
-  isFocal?: boolean; // true for the blast-radius centre node
-  depth?: number; // hop distance from focal node
-  [key: string]: unknown;
-}
-
-export interface ResourceRow {
-  id: string;
-  name: string;
-  type: string;
-  connectionCount: number;
-}
 
 export type ResourceGraphNode = Node<NodeData, "resource">;
 export type ResourceGraphEdge = Edge<{ relation?: string }, "relation">;
@@ -168,7 +147,7 @@ function computeLayout(
 // ─── Resource List View ───────────────────────────────────────────────────────
 
 interface ResourceListProps {
-  rows: ResourceRow[];
+  rows: Graph_ResourceRow[];
   selected: Set<string>;
   onToggle: (id: string) => void;
   onSelectAll: () => void;
@@ -553,7 +532,7 @@ function ResourceList({
 
 interface ImpactExplorerProps {
   cloudIdentifier: string;
-  rows: ResourceRow[];
+  rows: Graph_ResourceRow[];
   onBack: () => void;
 }
 
@@ -564,7 +543,7 @@ function ImpactExplorerInner({
 }: ImpactExplorerProps) {
   const [phase, setPhase] = useState<"pick" | "graph">("pick");
   const [pickSearch, setPickSearch] = useState("");
-  const [focalRow, setFocalRow] = useState<ResourceRow | null>(null);
+  const [focalRow, setFocalRow] = useState<Graph_ResourceRow | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<ResourceGraphNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ResourceGraphEdge>([]);
   const [loading, setLoading] = useState(false);
@@ -587,7 +566,7 @@ function ImpactExplorerInner({
   }, [rows, pickSearch]);
 
   const loadImpact = useCallback(
-    async (row: ResourceRow) => {
+    async (row: Graph_ResourceRow) => {
       setFocalRow(row);
       setPhase("graph");
       setLoading(true);
@@ -1749,7 +1728,9 @@ export default function RelationshipGraphPage() {
     "all",
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [resourceRows, setResourceRows] = useState<ResourceRow[]>([]);
+  const [Graph_ResourceRows, setGraph_ResourceRows] = useState<
+    Graph_ResourceRow[]
+  >([]);
   const [listLoading, setListLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -1760,7 +1741,7 @@ export default function RelationshipGraphPage() {
     graph
       .getAllRelations(cloudIdentifier)
       .then((data: ResourceRelationship[]) => {
-        const nodeMap = new Map<string, ResourceRow>();
+        const nodeMap = new Map<string, Graph_ResourceRow>();
         data.forEach((r) => {
           const upsert = (id: string, meta: ResourceMeta) => {
             const existing = nodeMap.get(id);
@@ -1781,9 +1762,9 @@ export default function RelationshipGraphPage() {
         const rows = Array.from(nodeMap.values()).sort(
           (a, b) => b.connectionCount - a.connectionCount,
         );
-        setResourceRows(rows);
+        setGraph_ResourceRows(rows);
       })
-      .catch(() => setResourceRows([]))
+      .catch(() => setGraph_ResourceRows([]))
       .finally(() => setListLoading(false));
   }, [cloudIdentifier]);
 
@@ -1807,11 +1788,11 @@ export default function RelationshipGraphPage() {
     <div className="h-screen bg-[#07070f] overflow-hidden">
       {view === "list" && (
         <ResourceList
-          rows={resourceRows}
+          rows={Graph_ResourceRows}
           selected={selectedIds}
           onToggle={toggleSelection}
           onSelectAll={() =>
-            setSelectedIds(new Set(resourceRows.map((r) => r.id)))
+            setSelectedIds(new Set(Graph_ResourceRows.map((r) => r.id)))
           }
           onClearAll={clearAll}
           onViewGraph={handleViewGraph}

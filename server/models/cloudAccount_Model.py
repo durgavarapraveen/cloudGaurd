@@ -203,3 +203,9 @@ class CloudAccounts(Base):
         back_populates="cloud_account",
         cascade="all, delete-orphan"
     )
+    
+    resource_last_fetch = relationship(
+        "ResourceLastFetched",
+        back_populates="cloud_account",
+        cascade="all, delete-orphan"
+    )

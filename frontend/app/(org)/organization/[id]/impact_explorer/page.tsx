@@ -16,13 +16,13 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { graph } from "@/lib/api";
-import type { ResourceMeta, ResourceRelationship } from "@/lib/props";
-import {
+import type {
+  Graph_ResourceRow,
   NodeData,
-  ResourceGraphEdge,
-  ResourceGraphNode,
-  ResourceRow,
-} from "../graph/page";
+  ResourceMeta,
+  ResourceRelationship,
+} from "@/lib/props";
+import { ResourceGraphEdge, ResourceGraphNode } from "../graph/page";
 import {
   computeImpactLayout,
   EDGE_TYPES,
@@ -35,13 +35,13 @@ import {
 
 interface ImpactExplorerProps {
   cloudIdentifier: string;
-  rows: ResourceRow[];
+  rows: Graph_ResourceRow[];
 }
 
 function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
   const [phase, setPhase] = useState<"pick" | "graph">("pick");
   const [pickSearch, setPickSearch] = useState("");
-  const [focalRow, setFocalRow] = useState<ResourceRow | null>(null);
+  const [focalRow, setFocalRow] = useState<Graph_ResourceRow | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<ResourceGraphNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ResourceGraphEdge>([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +64,7 @@ function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
   }, [rows, pickSearch]);
 
   const loadImpact = useCallback(
-    async (row: ResourceRow) => {
+    async (row: Graph_ResourceRow) => {
       setFocalRow(row);
       setPhase("graph");
       setLoading(true);
@@ -761,14 +761,16 @@ function ImpactExplorer(props: ImpactExplorerProps) {
 export default function RelationshipGraphPage() {
   const cloudIdentifier = PathName();
 
-  const [resourceRows, setResourceRows] = useState<ResourceRow[]>([]);
+  const [Graph_ResourceRows, setGraph_ResourceRows] = useState<
+    Graph_ResourceRow[]
+  >([]);
 
   useEffect(() => {
     if (!cloudIdentifier) return;
     graph
       .getAllRelations(cloudIdentifier)
       .then((data: ResourceRelationship[]) => {
-        const nodeMap = new Map<string, ResourceRow>();
+        const nodeMap = new Map<string, Graph_ResourceRow>();
         data.forEach((r) => {
           const upsert = (id: string, meta: ResourceMeta) => {
             const existing = nodeMap.get(id);
@@ -789,16 +791,16 @@ export default function RelationshipGraphPage() {
         const rows = Array.from(nodeMap.values()).sort(
           (a, b) => b.connectionCount - a.connectionCount,
         );
-        setResourceRows(rows);
+        setGraph_ResourceRows(rows);
       })
-      .catch(() => setResourceRows([]));
+      .catch(() => setGraph_ResourceRows([]));
   }, [cloudIdentifier]);
 
   return (
     <div className="h-screen bg-[#07070f] overflow-hidden">
       <ImpactExplorer
         cloudIdentifier={cloudIdentifier ?? ""}
-        rows={resourceRows}
+        rows={Graph_ResourceRows}
       />
     </div>
   );
