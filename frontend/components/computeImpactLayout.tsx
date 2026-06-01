@@ -2,8 +2,9 @@ import {
   NodeData,
   ResourceGraphEdge,
   ResourceGraphNode,
-} from "@/app/(org)/organization/[id]/graph/page";
-import { ResourceMeta, ResourceRelationship } from "@/lib/props";
+  ResourceMeta,
+  ResourceRelationship,
+} from "@/lib/props";
 import {
   BaseEdge,
   EdgeProps,

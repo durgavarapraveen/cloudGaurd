@@ -312,13 +312,13 @@ def resource_to_dict(r: Resources) -> dict:
         **(r.configuration or {}),
     }
 
-async def scan_resources_service(db: AsyncSession, accountIdentifier: str, request: Request, severities=None, github=str | None):
+async def scan_resources_service(db: AsyncSession, accountIdentifier: str, request: Request, severities=None):
     started_at = datetime.now(timezone.utc)
     
     cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=accountIdentifier, request=request)   
     cloud_account_id = cloudAccount.id
     
-    resources = await get_all_resource(db=db, account_identifier=accountIdentifier,cloud_account_id=cloud_account_id, request=request)
+    resources = await get_all_resource(db=db, cloud_account_id=cloud_account_id, request=request)
     
     mongo_docs = await get_policies()
     rules = flatten_mongo_rules(mongo_docs)
@@ -369,40 +369,40 @@ async def scan_resources_service(db: AsyncSession, accountIdentifier: str, reque
         "regions": regions
     }
     
-    if github is None:
+    
         #add information to scans
-        scan=await feed_info_scans(db=db, cloud_account_id=cloud_account_id,data=data,request=request)
-    
-    
-        for finding_dict in findings:
-            
-            resource = None
+    scan=await feed_info_scans(db=db, cloud_account_id=cloud_account_id,data=data,request=request)
 
-            finding_obj = Findings(
-                scan_id=scan.id,
-                cloud_account_id=cloud_account_id,
-                organization_id=get_request_organization_id(request),
-                resource_id=finding_dict.get("resource_id"),
-                resource_identifier=str(resource.resource_id) if resource else str(finding_dict.get("resource_id") or ""),
-                service=finding_dict.get("service") or "",
-                region=finding_dict.get("region"),
-                status=finding_dict.get("status") or "",
-                severity=finding_dict.get("severity"),
-                rule_id=finding_dict.get("rule_id") or "",
-                rule_title=finding_dict.get("rule_title") or "",
-                resource_type=finding_dict.get("resource_type"),
-                actual_value=finding_dict.get("actual_value"),
-                expected_value=finding_dict.get("expected_value"),
-                operator=finding_dict.get("operator"),
-                remediation=finding_dict.get("remediation"),
-                checked_at=datetime.now(timezone.utc),
-                finding_metadata={
-                    "source_file": finding_dict.get("source_file"),
-                },
-            )
-            db.add(finding_obj)
 
-        await db.commit()
+    for finding_dict in findings:
+        
+        resource = None
+
+        finding_obj = Findings(
+            scan_id=scan.id,
+            cloud_account_id=cloud_account_id,
+            organization_id=get_request_organization_id(request),
+            resource_id=finding_dict.get("resource_id"),
+            resource_identifier=str(resource.resource_id) if resource else str(finding_dict.get("resource_id") or ""),
+            service=finding_dict.get("service") or "",
+            region=finding_dict.get("region"),
+            status=finding_dict.get("status") or "",
+            severity=finding_dict.get("severity"),
+            rule_id=finding_dict.get("rule_id") or "",
+            rule_title=finding_dict.get("rule_title") or "",
+            resource_type=finding_dict.get("resource_type"),
+            actual_value=finding_dict.get("actual_value"),
+            expected_value=finding_dict.get("expected_value"),
+            operator=finding_dict.get("operator"),
+            remediation=finding_dict.get("remediation"),
+            checked_at=datetime.now(timezone.utc),
+            finding_metadata={
+                "source_file": finding_dict.get("source_file"),
+            },
+        )
+        db.add(finding_obj)
+
+    await db.commit()
 
     
     return {

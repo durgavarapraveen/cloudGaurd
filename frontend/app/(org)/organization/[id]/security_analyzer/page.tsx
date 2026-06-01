@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import PathName from "@/components/PathName";
 import { security_analyzer } from "@/lib/api";
+import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ interface ConfigSnapshot {
 }
 
 interface PublicFinding {
+  id: string;
   check: "PUBLIC_RESOURCE";
   resource_type: string;
   resource_id: string;
@@ -25,6 +27,7 @@ interface PublicFinding {
 }
 
 interface PortFinding {
+  id: string;
   check: "EXPOSED_PORT";
   resource_type: string;
   resource_id: string;
@@ -208,14 +211,25 @@ function ResourceTag({ label }: { label: string }) {
 
 // ─── Finding rows ─────────────────────────────────────────────────────────────
 
-function PublicFindingRow({ f }: { f: PublicFinding }) {
+function PublicFindingRow({
+  f,
+  accountIdentifier,
+}: {
+  f: PublicFinding;
+  accountIdentifier: string;
+}) {
+  console.log(f)
   return (
     <div className="border border-white/[0.05] rounded-xl p-4 bg-[#0d0d14] space-y-2 hover:border-sky-500/20 transition-colors">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="space-y-0.5">
           <div className="text-white font-medium">{f.resource_name}</div>
           <div className="text-xs text-slate-500 font-mono">
-            {f.resource_id}
+            <Link
+              href={`/organization/${accountIdentifier}/impact_explorer?rowId=${f.id}`}
+            >
+              {f.resource_id}
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -242,14 +256,24 @@ function PublicFindingRow({ f }: { f: PublicFinding }) {
   );
 }
 
-function PortFindingRow({ f }: { f: PortFinding }) {
+function PortFindingRow({
+  f,
+  accountIdentifier,
+}: {
+  f: PortFinding;
+  accountIdentifier: string;
+}) {
   return (
     <div className="border border-white/[0.05] rounded-xl p-4 bg-[#0d0d14] space-y-2 hover:border-red-500/20 transition-colors">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="space-y-0.5">
           <div className="text-white font-medium">{f.resource_name}</div>
           <div className="text-xs text-slate-500 font-mono">
-            {f.resource_id}
+            <Link
+              href={`/organization/${accountIdentifier}/impact_explorer?rowId=${f.id}`}
+            >
+              {f.resource_id}
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -641,7 +665,11 @@ export default function SecurityAnalysisPage() {
                 <EmptyState label="No publicly exposed resources found" />
               ) : (
                 data.public_findings.map((f) => (
-                  <PublicFindingRow key={f.resource_id} f={f} />
+                  <PublicFindingRow
+                    key={f.resource_id}
+                    f={f}
+                    accountIdentifier={accountIdentifier}
+                  />
                 ))
               )}
             </div>
@@ -665,6 +693,7 @@ export default function SecurityAnalysisPage() {
                   <PortFindingRow
                     key={`${f.resource_id}-${f.port}-${i}`}
                     f={f}
+                    accountIdentifier={accountIdentifier}
                   />
                 ))
               )}

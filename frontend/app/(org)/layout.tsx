@@ -142,6 +142,11 @@ const normalNav = () => [
     label: "Roles & Permissions",
     icon: dashboardIcon,
   },
+  {
+    href: "/organization/github",
+    label: "GitHub Integration",
+    icon: dashboardIcon,
+  },
 ];
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {

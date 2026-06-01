@@ -30,9 +30,6 @@ async def analyze_resource(db: AsyncSession, cloudIdentifier: str, request: Requ
     
     report = run_all_checks(resources)
 
-    # optional: print to server logs
-    print_report(report)
-
     return report
 
 

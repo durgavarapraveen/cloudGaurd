@@ -18,13 +18,13 @@ const STATUS_META: Record<
   DriftStatus,
   { label: string; color: string; bg: string; border: string; dot: string }
 > = {
-  //   new: {
-  //     label: "New",
-  //     color: "text-sky-300",
-  //     bg: "bg-sky-500/10",
-  //     border: "border-sky-500/25",
-  //     dot: "bg-sky-400",
-  //   },
+  new: {
+    label: "New",
+    color: "text-sky-300",
+    bg: "bg-sky-500/10",
+    border: "border-sky-500/25",
+    dot: "bg-sky-400",
+  },
   assigned: {
     label: "Assigned",
     color: "text-violet-300",
@@ -56,7 +56,7 @@ const STATUS_META: Record<
 };
 
 function getUserRole(): "admin" | "user" {
-  return "user";
+  return "admin";
   if (typeof window === "undefined") return "user";
   //   try {
   //     const raw = localStorage.getItem("user");
@@ -252,7 +252,7 @@ function DriftDrawer({
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Resource ID", value: drift.resource.resource_name },
+              { label: "Resource ID", value: drift.resource_name },
               { label: "Issue", value: drift.issue_with_resource },
               { label: "Detected", value: formatDate(drift.first_seen) },
               { label: "Assigned Group", value: selectedGroup?.name || "—" },
@@ -270,7 +270,6 @@ function DriftDrawer({
               </div>
             ))}
           </div>
-
           {/* Admin: assign group */}
           {role === "admin" && (
             <div className="space-y-2">
@@ -348,90 +347,88 @@ function DriftDrawer({
               )}
             </div>
           )}
-
           {/* User: status + comment */}
-          {role === "user" && (
-            <>
-              <div className="space-y-1.5">
-                <label className="text-[11px] text-slate-500 uppercase tracking-widest">
-                  Update Status
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_STATUSES.map((s) => {
-                    const m = STATUS_META[s];
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => setStatus(s)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[12px] transition-all ${
-                          status === s
-                            ? `${m.color} ${m.bg} ${m.border}`
-                            : "text-slate-500 border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${status === s ? m.dot : "bg-slate-700"}`}
-                        />
-                        {m.label}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* {role === "user" &&  */}(
+          <>
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-500 uppercase tracking-widest">
+                Update Status
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {ALL_STATUSES.map((s) => {
+                  const m = STATUS_META[s];
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setStatus(s)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[12px] transition-all ${
+                        status === s
+                          ? `${m.color} ${m.bg} ${m.border}`
+                          : "text-slate-500 border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${status === s ? m.dot : "bg-slate-700"}`}
+                      />
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] text-slate-500 uppercase tracking-widest">
-                  Comment
-                </label>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={4}
-                  placeholder="Add a comment about this drift..."
-                  className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-emerald-500/50 transition-colors resize-none"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-500 uppercase tracking-widest">
+                Comment
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                placeholder="Add a comment about this drift..."
+                className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-emerald-500/50 transition-colors resize-none"
+              />
+            </div>
 
-              {comments.length > 0 &&
-                comments.map((m, i) => (
-                  <div
-                    key={i}
-                    className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.025] px-4 py-3 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]"
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-[12px] font-semibold text-emerald-400 uppercase">
-                          {m.user.username?.charAt(0)}
-                        </div>
-
-                        <div className="flex flex-col">
-                          <p className="text-[13px] font-medium text-slate-200">
-                            {m.user.username}
-                          </p>
-
-                          <p className="text-[11px] text-slate-500">
-                            Updated Drift
-                          </p>
-                        </div>
+            {comments.length > 0 &&
+              comments.map((m, i) => (
+                <div
+                  key={i}
+                  className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.025] px-4 py-3 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-[12px] font-semibold text-emerald-400 uppercase">
+                        {m.user.username?.charAt(0)}
                       </div>
 
-                      <p className="text-[11px] text-slate-600 whitespace-nowrap">
-                        {formatDate(m.created_at)}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="text-[13px] font-medium text-slate-200">
+                          {m.user.username}
+                        </p>
+
+                        <p className="text-[11px] text-slate-500">
+                          Updated Drift
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Comment */}
-                    <div className="rounded-xl border border-white/[0.05] bg-black/20 px-3 py-3">
-                      <p className="text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap break-words">
-                        {m.comment}
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-slate-600 whitespace-nowrap">
+                      {formatDate(m.created_at)}
+                    </p>
                   </div>
-                ))}
-            </>
-          )}
 
+                  {/* Comment */}
+                  <div className="rounded-xl border border-white/[0.05] bg-black/20 px-3 py-3">
+                    <p className="text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap break-words">
+                      {m.comment}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </>
+          ){/* } */}
           {error && (
             <div className="border border-red-500/30 bg-red-500/10 rounded-lg p-3 text-[13px] text-red-400">
               {error}
@@ -703,12 +700,10 @@ export default function DriftPage() {
                 >
                   <td className="px-5 py-3.5">
                     <div className="text-[13px] text-slate-200 font-medium">
-                      {d.resource.resource_name}
+                      {d.resource_id}
                     </div>
                     <div className="text-[11px] text-slate-600 font-mono mt-0.5">
-                      {d.resource.resource_name &&
-                        d.resource.resource_name.slice(0, 16)}
-                      …
+                      {d.resource_name && d.resource_name.slice(0, 16)}…
                     </div>
                   </td>
                   {/* <td className="px-5 py-3.5">

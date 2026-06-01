@@ -1,3 +1,5 @@
+import { Edge, Node } from "@xyflow/react";
+
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
 export type Status = "PASS" | "FAIL" | "ERROR" | "SKIP";
 
@@ -403,8 +405,11 @@ export interface CreateGroupPayload {
 }
 
 export type DriftStatus =
-  // | "new"
-  "assigned" | "in-progress" | "resolved" | "ignored";
+  | "new"
+  | "assigned"
+  | "in-progress"
+  | "resolved"
+  | "ignored";
 
 export interface DriftResource {
   id: string;
@@ -471,6 +476,9 @@ export interface Graph_ResourceRow {
   type: string;
   connectionCount: number;
 }
+
+export type ResourceGraphNode = Node<NodeData, "resource">;
+export type ResourceGraphEdge = Edge<{ relation?: string }, "relation">;
 
 export interface ResourceDetail {
   id: string;

@@ -54,6 +54,7 @@ def run_public_inventory(resources: List[Any]) -> List[Dict]:
 
         if checker(config):
             findings.append({
+                "id": r.id,
                 "check":         "PUBLIC_RESOURCE",
                 "resource_type": resource_type,
                 "resource_id":   r.resource_id,

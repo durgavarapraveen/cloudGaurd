@@ -56,6 +56,7 @@ def run_port_analysis(resources: List[Any]) -> List[Dict]:
             for port, (service_name, severity) in SENSITIVE_PORTS.items():
                 if from_port <= port <= to_port:
                     findings.append({
+                        "id": r.id,
                         "check":         "EXPOSED_PORT",
                         "resource_type": "ec2_security_group",
                         "resource_id":   r.resource_id,

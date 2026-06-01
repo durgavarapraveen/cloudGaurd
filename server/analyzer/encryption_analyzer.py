@@ -117,6 +117,7 @@ def run_encryption_check(resources: List[Any]) -> List[Dict]:
 
         if is_unencrypted:
             findings.append({
+                "id": r.id,
                 "check":         "UNENCRYPTED_RESOURCE",
                 "resource_type": r.resource_type,
                 "resource_id":   r.resource_id,

@@ -19,10 +19,11 @@ import { graph } from "@/lib/api";
 import type {
   Graph_ResourceRow,
   NodeData,
+  ResourceGraphEdge,
+  ResourceGraphNode,
   ResourceMeta,
   ResourceRelationship,
 } from "@/lib/props";
-import { ResourceGraphEdge, ResourceGraphNode } from "../graph/page";
 import {
   computeImpactLayout,
   EDGE_TYPES,
@@ -32,6 +33,7 @@ import {
   GRAPH_STYLES,
   NODE_TYPES,
 } from "@/components/computeImpactLayout";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 interface ImpactExplorerProps {
   cloudIdentifier: string;
@@ -50,6 +52,11 @@ function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
     { hop: number; count: number }[]
   >([]);
   const [stats, setStats] = useState({ nodes: 0, edges: 0 });
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const rowId = searchParams.get("rowId");
+
   const { fitView } = useReactFlow();
 
   const filteredRows = useMemo(() => {
@@ -64,11 +71,18 @@ function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
   }, [rows, pickSearch]);
 
   const loadImpact = useCallback(
-    async (row: Graph_ResourceRow) => {
+    async (row: Graph_ResourceRow, syncUrl = true) => {
       setFocalRow(row);
       setPhase("graph");
       setLoading(true);
       setError(null);
+
+      if (syncUrl) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("rowId", row.id);
+        router.replace(`?${params.toString()}`);
+      }
+
       try {
         // Fetch connections for a specific resource ID from backend
         const data: ResourceRelationship[] = await graph.getResourceRelations(
@@ -104,8 +118,43 @@ function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
         setLoading(false);
       }
     },
-    [cloudIdentifier, fitView, setEdges, setNodes],
+    [cloudIdentifier, fitView, router, searchParams, setEdges, setNodes],
   );
+
+  const returnToPicker = useCallback(() => {
+    setPhase("pick");
+    setFocalRow(null);
+    setNodes([]);
+    setEdges([]);
+    setStats({ nodes: 0, edges: 0 });
+    setDepthStats([]);
+    setError(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("rowId");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams, setEdges, setNodes]);
+
+  useEffect(() => {
+    if (!rowId) return;
+
+    const row = rows.find((r) => r.id === rowId);
+    if (row) {
+      if (focalRow?.id !== rowId || phase !== "graph") {
+        loadImpact(row, false);
+      }
+      return;
+    }
+
+    // Rows are loaded asynchronously. On a browser reload with ?rowId=...,
+    // wait for the resource list before deciding whether the URL is invalid.
+    if (rows.length === 0) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("rowId");
+    router.replace(`?${params.toString()}`);
+  }, [focalRow?.id, loadImpact, phase, rowId, rows, router, searchParams]);
 
   // ── Phase: resource picker ──
   if (phase === "pick") {
@@ -371,7 +420,7 @@ function ImpactExplorerInner({ cloudIdentifier, rows }: ImpactExplorerProps) {
       <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/[0.06] bg-[#07070f] shrink-0">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setPhase("pick")}
+            onClick={returnToPicker}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold
               border border-white/[0.1] bg-white/[0.04] text-slate-400
               hover:bg-white/[0.08] hover:text-slate-200 transition-all"
