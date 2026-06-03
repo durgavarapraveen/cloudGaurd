@@ -22,17 +22,17 @@ from api.resource_relationship_route import router as resource_relationship_rout
 from api.iam_route import router as iam_router
 from api.shallow_detector_route import router as shallow_detector_router
 from api.security_analyzer_routes import router as security_analyzer_router
+from api.github_auth_route import router as github_auth_router
+from api.github_routes import router as github_router
+from api.github_webhook_route import router as webhook_router
 
 from db.postgressDB import engine, AsyncSessionLocal
 from middlewares.userVerificationMiddleware import AuthMiddleware
 from models.Base import Base
 from models.resourceSchedular_model import ResourceSchedular
 from schedulars.schedular import scheduler
-from schedulars.resourceSchedular_job import run_scheduler_job, schedular_resources  # ✅ async function
+from schedulars.resourceSchedular_job import schedular_resources  # ✅ async function
 from apscheduler.triggers.interval import IntervalTrigger
-from services.resourceSchedular_service import get_next_start_date, get_scheduled_time_today
-
-from services.resource_service import all_resources_service_aws
 
 
 # ✅ Define lifespan BEFORE app
@@ -145,6 +145,11 @@ app.include_router(resource_relationship_router)
 app.include_router(iam_router)
 app.include_router(shallow_detector_router)
 app.include_router(security_analyzer_router)
+app.include_router(github_auth_router)
+app.include_router(github_router)
+app.include_router(webhook_router)
+
+
 
 @app.get("/")
 def read_root():

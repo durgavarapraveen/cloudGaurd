@@ -59,6 +59,5 @@ async def scan_account(account_identifier, organization_id):
         await all_resources_service_aws(
             db=db,
             account_identifier=account_identifier,
-            request=request,
-            schedular_id=None,
+            request=request
         )

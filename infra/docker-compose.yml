@@ -43,10 +43,19 @@ services:
       MAIL_SSL_TLS: ${MAIL_SSL_TLS:-false}
       MAIL_SUPPRESS_SEND: ${MAIL_SUPPRESS_SEND:-false}
       FRONT_END_URL: ${FRONT_END_URL}
+      GITHUB_SECRET_KEY: ${GITHUB_SECRET_KEY}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID}
+      GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
+      GITHUB_PRIVATE_KEY: ${GITHUB_PRIVATE_KEY:-}
+      GITHUB_PRIVATE_KEY_PATH: /run/secrets/github_private_key.pem
     ports:
       - "8001:8000"
     volumes:
       - ../server:/app
+      - ./github_private_key.pem:/run/secrets/github_private_key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy

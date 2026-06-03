@@ -147,3 +147,10 @@ class Organization(Base):
         back_populates="organization",
         cascade="all, delete-orphan"
     )
+    
+    github_installation = relationship(
+        "GitHubInstallation",
+        back_populates="organization",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )

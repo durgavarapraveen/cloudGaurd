@@ -5,7 +5,6 @@ const BASE = (
 )
   .trim()
   .replace(/\/$/, "");
-const LOCAL_HOSTNAMES = new Set(["localhost", "127", "127.0.0.1"]);
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase();
 
 function backendUrl(path: string) {
@@ -50,7 +49,7 @@ function getTenantSlug() {
   return hostname.split(".")[0]?.trim() || null;
 }
 
-function requireTenantSlug() {
+export default function requireTenantSlug() {
   const slug = getTenantSlug();
   if (!slug) {
     throw new Error(
@@ -201,8 +200,20 @@ async function refreshAccessToken(): Promise<LoginResponse> {
   return session;
 }
 
+function headersToRecord(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return headers as Record<string, string>;
+}
+
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   const slug = requireTenantSlug();
+
   const requestInit = {
     ...init,
     headers: {
@@ -283,6 +294,25 @@ async function parseApiError(res: Response, fallback: string) {
     return body?.detail ?? body?.message ?? fallback;
   } catch {
     return fallback;
+  }
+}
+
+async function withTimeout<T>(
+  task: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = 15000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await task(controller.signal);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
@@ -1305,6 +1335,71 @@ export const security_analyzer = {
     const res = await apiFetch(url);
     if (!res.ok) {
       throw new Error("Failed to fetch IAM Resources");
+    }
+    return res.json();
+  },
+};
+
+export const github = {
+  async connectGithub() {
+    const url = `${BASE}/github_auth/github`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Failed to get Github URL"));
+    }
+    const data = await res.json();
+    return data.url;
+  },
+
+  async loadRepos() {
+    const url = `${BASE}/github/repos`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(await parseApiError(res, "Failed to fetch Github Repo"));
+    }
+    return res.json();
+  },
+
+  async getRepoStats(owner: string, repo: string) {
+    const url = `${BASE}/github/repos/${owner}/${repo}/stats`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Failed to fetch Github Repo Stats"),
+      );
+    }
+    return res.json();
+  },
+
+  async getBranches(owner: string, repo: string) {
+    const url = `${BASE}/github/repos/${owner}/${repo}/branches`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Failed to fetch Github Branches"),
+      );
+    }
+    return res.json();
+  },
+
+  async getCommits(owner: string, repo: string) {
+    const url = `${BASE}/github/repos/${owner}/${repo}/commits`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Failed to fetch Github Commits"),
+      );
+    }
+    return res.json();
+  },
+
+  async getPulls(owner: string, repo: string, state: string) {
+    const url = `${BASE}/github/repos/${owner}/${repo}/pulls?state=${state}`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Failed to fetch Github Pull Requests"),
+      );
     }
     return res.json();
   },

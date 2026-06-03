@@ -29,6 +29,7 @@ from models.relationship_rules_model import RelationShipRule
 from models.resource_relationship_model import ResourceRelationShip
 from models.resource_lastfetched_model import ResourceLastFetched
 from models.resource_version_model import ResourceVersion
+from models.github_installation_model import GitHubInstallation
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")

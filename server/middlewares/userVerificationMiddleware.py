@@ -21,6 +21,8 @@ EXCLUDED_ROUTES = [
     "/auth/refresh-token",
     "/auth/forgot-password",
     "/auth/reset-password",
+    "/github_auth/callback",
+    "/github_webhook/webhook",
     "/docs",
     "/redoc",
     "/openapi.json",
