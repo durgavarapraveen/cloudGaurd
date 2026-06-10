@@ -105,7 +105,7 @@ async def deleteGroup_service(db: AsyncSession, id: str, request: Request):
     }
 
 async def addUsersToGroup_service(db: AsyncSession, users: list[str], id: str, request: Request):
-    print(f"Users from client {users}")
+    
     group = await getGroupwithId_repository(db=db, id=id, request=request)
     if not group:
         raise HTTPException(status_code=404, detail="NO group Found")
@@ -113,7 +113,6 @@ async def addUsersToGroup_service(db: AsyncSession, users: list[str], id: str, r
         select(User)
         .where(User.id.in_(users))
     )
-    print(userList)
     userList = userList.scalars().all()
     group.users = userList
     await db.commit()

@@ -2,9 +2,12 @@ import { LoginResponse } from "./props";
 
 import {
   ACCESS_TOKEN_KEY,
+  EMAIL,
+  LAST_SCAN_AT,
   PERMISSIONS_KEY,
   REFRESH_TOKEN_KEY,
   USER_ID_KEY,
+  USERNAME,
 } from "./session-keys";
 
 export function saveSession(session: LoginResponse) {
@@ -18,6 +21,16 @@ export function saveSession(session: LoginResponse) {
     PERMISSIONS_KEY,
     JSON.stringify(session.permissions ?? []),
   );
+  window.localStorage.setItem(
+    "GITHUB_CONNECTED",
+    session.github_connected ? "true" : "false",
+  );
+  window.localStorage.setItem(
+    "ORGANIZATION_CONNECTED",
+    session.cloud_account_connected ? "true" : "false",
+  );
+  window.localStorage.setItem(USERNAME, session.username);
+  window.localStorage.setItem(EMAIL, session.email);
 }
 
 export function encodeSessionForHandoff(session: LoginResponse) {
@@ -51,13 +64,7 @@ export function consumeSessionHandoff() {
 }
 
 export function clearSession() {
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-
-  window.localStorage.removeItem(USER_ID_KEY);
-
-  window.localStorage.removeItem(PERMISSIONS_KEY);
+  window.localStorage.clear();
 }
 
 export function hasSession() {
@@ -81,3 +88,27 @@ export function getPermissions() {
     return [];
   }
 }
+
+export const githubConnected = () => {
+  if (typeof window === "undefined") return false;
+
+  return window.localStorage.getItem("GITHUB_CONNECTED") === "true";
+};
+
+export const organizationConnected = () => {
+  if (typeof window === "undefined") return false;
+
+  return window.localStorage.getItem("ORGANIZATION_CONNECTED") === "true";
+};
+
+export const get_username = () => {
+  if (typeof window === "undefined") return false;
+
+  return window.localStorage.getItem(USERNAME);
+};
+
+export const get_email = () => {
+  if (typeof window === "undefined") return false;
+
+  return window.localStorage.getItem(EMAIL);
+};

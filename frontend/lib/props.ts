@@ -199,6 +199,11 @@ export interface LoginResponse {
   user_id: string;
   permissions: string[];
   message: string;
+  github_connected: boolean;
+  cloud_account_connected: boolean;
+  username: string;
+  email: string;
+  last_scan_at: string;
 }
 
 export interface RootLoginResponse {

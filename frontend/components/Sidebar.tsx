@@ -1,13 +1,10 @@
 "use client";
-
-import { authApi, usersApi } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
-import { clearSession, getCurrentUserId } from "@/lib/session";
+import { clearSession, get_email, get_username } from "@/lib/session";
 import { ChevronUp, KeyRound, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { useState } from "react";
+import { useSSEContext } from "@/context/sseContext";
 
 type SidebarProps = {
   nav: {
@@ -20,44 +17,15 @@ type SidebarProps = {
 export default function Sidebar({ nav }: SidebarProps) {
   const path = usePathname();
   const router = useRouter();
+  const { state } = useSSEContext();
   const provider = window.localStorage.getItem("CLOUD_PROVIDER");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [username, setUsername] = useState("User");
-  const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadProfile() {
-      const currentUserId = getCurrentUserId();
-      if (!cancelled) setUserId(currentUserId);
-      if (!currentUserId) return;
-      try {
-        const profile = await usersApi.profile(currentUserId);
-        if (cancelled) return;
-        setUsername(profile.username || "User");
-        setEmail(profile.email || "");
-      } catch {
-        if (!cancelled) setUsername("User");
-      }
-    }
-
-    loadProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const username = get_username();
+  const email = get_email();
 
   async function handleLogout() {
-    try {
-      if (userId) await authApi.logout(userId);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Logout failed on server"));
-    } finally {
-      clearSession();
-      router.replace("/login");
-    }
+    clearSession();
+    router.replace("/login");
   }
 
   return (
@@ -103,6 +71,11 @@ export default function Sidebar({ nav }: SidebarProps) {
           </div>
         </div>
       )}
+
+      <p>
+        Last Fetched{" "}
+        {state.lastFetchedAt && <p>Last synced: {state.lastFetchedAt}</p>}
+      </p>
 
       <nav className="flex-1 px-3 pt-3 space-y-0.5">
         <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 px-2">
@@ -190,7 +163,7 @@ export default function Sidebar({ nav }: SidebarProps) {
           aria-label="Open profile menu"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-[12px] font-semibold text-emerald-300">
-            {username.charAt(0).toUpperCase()}
+            {username && username?.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] font-medium text-slate-200">

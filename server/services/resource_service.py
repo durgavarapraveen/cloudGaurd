@@ -1,5 +1,5 @@
 
-from fastapi import HTTPException, Request, BackgroundTasks
+from fastapi import HTTPException, Request, logger
 from datetime import datetime, date
 from uuid import UUID
 import json
@@ -11,12 +11,12 @@ from db.postgressDB import AsyncSessionLocal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from models.resources_model import Resources
 from models.resourceSummary_model import ResourceSummary
 from models.resource_lastfetched_model import ResourceLastFetched
 from models.resource_version_model import ResourceVersion
+from models.cloudAccount_Model import CloudAccounts
 
 from repository.resources_repository import (
     getcloudAccountwithAccountIdentifier,
@@ -26,6 +26,7 @@ from repository.resources_repository import (
     get_resource_detail_for_summary_DB_Repository
 )
 
+from schedulars.background_compact import DirectBackgroundTasks
 from utils.aws_session import get_session as aws_session
 
 from scanners.AWS.aws_scanner import collect_all
@@ -187,55 +188,61 @@ async def get_resource_version_with_ID_service(db: AsyncSession, resourceId: str
 
     return versions
 
-async def all_resources_service_aws(
-    db: AsyncSession,
-    account_identifier: str,
-    request: Request,
-    background_tasks: BackgroundTasks,
-    
-):
-    organization_id = get_request_organization_id(request)
 
-    cloudAccount = await getcloudAccountwithAccountIdentifier(
-        db,
-        account_identifier=account_identifier,
-        request=request
-    )
-
-    if not cloudAccount:
-        raise HTTPException(404, "Cloud account not found")
-
-    if cloudAccount.provider != "aws":
-        raise HTTPException(400, "Only AWS supported currently")
-
-    creds = cloudAccount.credentials
-    aws_key = creds.get("access_key_id")
-    aws_secret = creds.get("secret_access_key")
-
-    if not aws_key or not aws_secret:
-        raise HTTPException(400, "Missing AWS credentials")
-
-    try:
-        session = aws_session(aws_key=aws_key, aws_secret=aws_secret)
-    except Exception:
-        raise HTTPException(400, "Invalid AWS credentials")
-    
-    
-    # Add the heavy work to background
-    background_tasks.add_task(
-        _process_aws_resources_background,
-        organization_id=organization_id,
-        cloud_account_id=cloudAccount.id,
-        session=session,
-        request=request
-    )
-    
-    return {
-        "success": True,
-        "message": "AWS resource fetching is in progress. Resources will be updated in the background.",
-        "cloud_account_id": cloudAccount.id,
+async def scan_account(account_identifier: str, organization_id: str):
+    # minimal Request stand-in — only sets what the service actually reads
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "query_string": b"",
+        "headers": [],
     }
-    
+    request = Request(scope)
+    request.state.organizationId = organization_id
+
+    async with AsyncSessionLocal() as db:
+        # --- replicate all_resources_service_aws logic directly ---
+        # but use plain exceptions instead of HTTPException
+        # so a bad account doesn't crash the scheduler job
+
+        cloudAccount = await getcloudAccountwithAccountIdentifier(
+            db,
+            account_identifier=account_identifier,
+            request=request,
+        )
+
+        if not cloudAccount:
+            raise Exception(f"Cloud account not found: {account_identifier}")
+
+        if cloudAccount.provider != "aws":
+            raise Exception(f"Account {account_identifier} is not AWS, skipping")
+
+        creds = cloudAccount.credentials
+        aws_key = creds.get("access_key_id")
+        aws_secret = creds.get("secret_access_key")
+
+        if not aws_key or not aws_secret:
+            raise Exception(f"Missing AWS credentials for {account_identifier}")
+
+        try:
+            session = aws_session(aws_key=aws_key, aws_secret=aws_secret)
+        except Exception:
+            raise Exception(f"Invalid AWS credentials for {account_identifier}")
+
+        # fire the heavy background work as an asyncio task
+        # DirectBackgroundTasks.add_task() calls asyncio.create_task() internally
+        background_tasks = DirectBackgroundTasks()
+        background_tasks.add_task(
+            _process_aws_resources_background,
+            organization_id=organization_id,
+            cloud_account_id=cloudAccount.id,
+            session=session,
+            request=request,
+        )
+
+
+ 
 def get_changed_fields(old: dict, new: dict) -> dict:
     """Returns only the fields that changed, with old and new values."""
     print(old, new)
@@ -251,6 +258,9 @@ def get_changed_fields(old: dict, new: dict) -> dict:
             }
     return changes
     
+
+from integration.SSE.sse_manager import sse_manager    
+
 async def _process_aws_resources_background(
     organization_id: str,
     cloud_account_id: str,
@@ -463,6 +473,36 @@ async def _process_aws_resources_background(
                 latestTime.latest_fetch = datetime.now(timezone.utc)
             
             await db.commit()
+            
+            
+            # SSE Push back
+            fetched_at_str = latestTime.latest_fetch.strftime("%I:%M %p")
+            latest_fetch_payload = {
+                "last_fetched_at": fetched_at_str,
+                "event": "last_fetch_updated"
+            }
+            
+            summary_payload = {
+                "total": summary.total_resources_fetched_count,
+                "updated": summary.updated_resources_count,
+                "new": summary.newly_added_resources_count,
+                "deleted": summary.deleted_resources_count,
+                "event": "resource_summary_update"
+            }
+            
+            resource_payload = {
+                "updated_resources": updated_resources,
+                "new_resources": new_resources,
+                "deleted_resources": deleted_resources,
+                "event": "resource_list_update"
+            }
+            
+            
+            connected_users = list(sse_manager._queues.keys())
+            print(f"connected_users {connected_users}")
+            for user_id in connected_users:
+                await sse_manager.push(user_id, event="last_fetch_updated", data=json.dumps(latest_fetch_payload))
+            print(f"AWS resource sync complete for account {cloud_account_id}: {total_count} total, {len(updated_resources)} updated, {len(new_resources)} new, {len(deleted_resources)} deleted")
 
         except Exception as e:
             await db.rollback()

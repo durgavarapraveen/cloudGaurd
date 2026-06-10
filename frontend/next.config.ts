@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  reactStrictMode: false,
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [
@@ -46,7 +47,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/backend/:path*",
-        destination: `${process.env.BACKEND_INTERNAL_URL || "http://localhost:8000"}/:path*`,
+        destination: `${process.env.BACKEND_INTERNAL_URL || "http://localhost:8001"}/:path*`,
       },
     ];
   },

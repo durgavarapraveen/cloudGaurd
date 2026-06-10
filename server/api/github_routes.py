@@ -33,6 +33,21 @@ async def _get_token(organization_id: str, db: AsyncSession) -> str:
     return token_data["token"]
 
 
+@router.get("/status")
+async def github_status(request: Request, db: AsyncSession = Depends(get_db)):
+    organization_id = get_request_organization_id(request)
+    if not organization_id:
+        raise HTTPException(400, "Missing organization id")
+
+    result = await db.execute(
+        select(GitHubInstallation).where(
+            GitHubInstallation.organization_id == organization_id
+        )
+    )
+    installation = result.scalar_one_or_none()
+    return {"connected": installation is not None}
+
+
 # ─── Repos ────────────────────────────────────────────────────────────────────
 
 @router.get("/repos")

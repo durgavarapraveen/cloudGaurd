@@ -81,6 +81,15 @@ export default function GitHubPage() {
     }
   }, []);
 
+  const checkConnection = useCallback(async () => {
+    const status = await github.checkStatus();
+    setConnected(status.connected);
+    if (!status.connected) {
+      setRepos([]);
+    }
+    return status.connected;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -88,15 +97,35 @@ export default function GitHubPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("connected") === "true") {
         window.history.replaceState({}, "", window.location.pathname);
+        setConnected(true);
         setConnectingInProgress(false);
+        await loadRepos({ silent: true });
+        if (!cancelled) setCheckingConnection(false);
+        return;
       }
-      await loadRepos({ silent: true });
+
+      try {
+        const isConnected = await checkConnection();
+        if (isConnected) {
+          await loadRepos({ silent: true });
+        }
+      } catch (err) {
+        setConnected(false);
+        setRepos([]);
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to check GitHub connection",
+          );
+        }
+      }
       if (!cancelled) setCheckingConnection(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadRepos]);
+  }, [checkConnection, loadRepos]);
 
   useEffect(() => {
     if (!connectingInProgress) return;
@@ -104,12 +133,17 @@ export default function GitHubPage() {
     const interval = setInterval(async () => {
       attempts += 1;
       try {
-        const res: Repo[] = await github.loadRepos();
-        setRepos(res);
-        setConnected(true);
-        setConnectingInProgress(false);
-        setError(null);
-        clearInterval(interval);
+        const isConnected = await checkConnection();
+        if (isConnected) {
+          setConnectingInProgress(false);
+          setError(null);
+          clearInterval(interval);
+          await loadRepos({ silent: true });
+        } else if (attempts >= 20) {
+          setConnectingInProgress(false);
+          setError("GitHub installation was not completed");
+          clearInterval(interval);
+        }
       } catch (err) {
         if (attempts >= 20) {
           setConnectingInProgress(false);
@@ -123,14 +157,14 @@ export default function GitHubPage() {
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [connectingInProgress]);
+  }, [checkConnection, connectingInProgress, loadRepos]);
 
   async function connectGithub() {
     try {
       setLoading(true);
       setError(null);
       const url: string = await github.connectGithub();
-      const tab = window.open(url);
+      const tab = window.open(url, "_self");
       if (tab) {
         tab.focus();
         setConnectingInProgress(true);

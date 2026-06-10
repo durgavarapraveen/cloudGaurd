@@ -1,23 +1,8 @@
-const BASE = (
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "/backend"
-)
-  .trim()
-  .replace(/\/$/, "");
+export const BASE = // process.env.NEXT_PUBLIC_BACKEND_URL ||
+  // process.env.NEXT_PUBLIC_BACKEND ||
+  // process.env.BACKEND_INTERNAL_URL ||
+  "http://localhost:8001".trim().replace(/\/$/, "");
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase();
-
-function backendUrl(path: string) {
-  return `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function backendSearchUrl(path: string) {
-  const origin =
-    typeof window === "undefined"
-      ? "http://localhost:3000"
-      : window.location.origin;
-  return new URL(backendUrl(path), origin);
-}
 
 function getTenantSlug() {
   if (typeof window === "undefined") return null;
@@ -49,7 +34,7 @@ function getTenantSlug() {
   return hostname.split(".")[0]?.trim() || null;
 }
 
-export default function requireTenantSlug() {
+export function requireTenantSlug() {
   const slug = getTenantSlug();
   if (!slug) {
     throw new Error(
@@ -57,6 +42,11 @@ export default function requireTenantSlug() {
     );
   }
   return slug;
+}
+
+function optionalTenantHeader(): Record<string, string> {
+  const slug = getTenantSlug();
+  return slug ? { "X-Tenant-Slug": slug } : {};
 }
 
 import toast from "react-hot-toast";
@@ -119,7 +109,7 @@ function normalizeResourceSummary(
   };
 }
 
-function authHeaders(): HeadersInit {
+export function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
 
   const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -130,15 +120,16 @@ function authHeaders(): HeadersInit {
   return headers;
 }
 
-function clearStoredSession() {
+export function clearStoredSession() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(USER_ID_KEY);
   window.localStorage.removeItem(PERMISSIONS_KEY);
+  window.localStorage.clear();
 }
 
-function saveRefreshedSession(session: LoginResponse) {
+export function saveRefreshedSession(session: LoginResponse) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
@@ -149,7 +140,7 @@ function saveRefreshedSession(session: LoginResponse) {
   );
 }
 
-function getAccessTokenPayload(): Record<string, unknown> | null {
+export function getAccessTokenPayload(): Record<string, unknown> | null {
   if (typeof window === "undefined") return null;
 
   const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -163,8 +154,7 @@ function getAccessTokenPayload(): Record<string, unknown> | null {
   }
 }
 
-async function refreshAccessToken(): Promise<LoginResponse> {
-  console.log("Entered refresh token");
+export async function refreshAccessToken(): Promise<LoginResponse> {
   if (typeof window === "undefined") {
     throw new Error("Token refresh is only available in the browser");
   }
@@ -183,8 +173,8 @@ async function refreshAccessToken(): Promise<LoginResponse> {
     payload?.privilege === "rootUser"
       ? "/root_user/refresh-token"
       : "/auth/refresh-token";
-
-  const res = await fetch(`${BASE}${refreshPath}`, {
+  const url = `${BASE}${refreshPath}`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshToken }),
@@ -200,29 +190,18 @@ async function refreshAccessToken(): Promise<LoginResponse> {
   return session;
 }
 
-function headersToRecord(headers?: HeadersInit): Record<string, string> {
-  if (!headers) return {};
-  if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
-  }
-  if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  }
-  return headers as Record<string, string>;
-}
-
-async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const slug = requireTenantSlug();
-
+export async function apiFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
   const requestInit = {
     ...init,
     headers: {
       ...(init.headers as Record<string, string> | undefined),
       ...authHeaders(),
-      "X-Tenant-Slug": slug,
+      ...optionalTenantHeader(),
     },
   };
-
   let res: Response;
   try {
     res = await fetch(input, requestInit);
@@ -245,7 +224,7 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
     headers: {
       ...requestInit.headers,
       ...authHeaders(),
-      "X-Tenant-Slug": slug,
+      ...optionalTenantHeader(),
     },
   });
 }
@@ -288,7 +267,7 @@ async function apiFetchRootUser(
   });
 }
 
-async function parseApiError(res: Response, fallback: string) {
+export async function parseApiError(res: Response, fallback: string) {
   try {
     const body = await res.json();
     return body?.detail ?? body?.message ?? fallback;
@@ -778,10 +757,7 @@ export const dashboardApi = {
     limit = 100,
     accountIdentifier: string,
   ): Promise<DashboardScansResponse> => {
-    const url = backendSearchUrl(
-      `/dashboard/recent-scans/${accountIdentifier}`,
-    );
-    url.searchParams.set("limit", String(limit));
+    const url = `${BASE}/dashboard/recent-scans/${accountIdentifier}?limit=${limit}`;
     const res = await apiFetch(url.toString(), {
       headers: authHeaders(),
     });
@@ -802,9 +778,7 @@ export const dashboardApi = {
   },
 
   scan: async (accountIdentifier: string): Promise<ScanResult> => {
-    const url = backendSearchUrl(
-      `/dashboard/scanServices/${accountIdentifier}`,
-    );
+    const url = `${BASE}/dashboard/scanServices/${accountIdentifier}`;
     const res = await apiFetch(url.toString());
     if (!res.ok) {
       throw new Error(await parseApiError(res, "Scan failed"));
@@ -1163,7 +1137,6 @@ export const GroupsAPI = {
     return res.json();
   },
   async createGroup(data: CreateGroupPayload): Promise<Group> {
-    console.log(data);
     const url = `${BASE}/group/create`;
     const res = await apiFetch(url, {
       method: "POST",
@@ -1184,7 +1157,6 @@ export const GroupsAPI = {
     return res.json();
   },
   async addUsers(id: string, userIds: string[]): Promise<Group> {
-    console.log(id);
     const url = `${BASE}/group/addUsers/${id}`;
     const res = await apiFetch(url, {
       method: "PUT",
@@ -1307,7 +1279,6 @@ export const iam = {
 
   async fetchIamEntities(cloudIdentifier: string): Promise<IamEntity[]> {
     const url = `${BASE}/iam/entities?cloudIdentifier=${cloudIdentifier}`;
-    console.log(url);
     const res = await apiFetch(url);
     if (!res.ok) {
       throw new Error(`Request failed: ${res.status}`);
@@ -1341,6 +1312,17 @@ export const security_analyzer = {
 };
 
 export const github = {
+  async checkStatus(): Promise<{ connected: boolean }> {
+    const url = `${BASE}/github/status`;
+    const res = await withTimeout((signal) => apiFetch(url, { signal }));
+    if (!res.ok) {
+      throw new Error(
+        await parseApiError(res, "Failed to check Github status"),
+      );
+    }
+    return res.json();
+  },
+
   async connectGithub() {
     const url = `${BASE}/github_auth/github`;
     const res = await withTimeout((signal) => apiFetch(url, { signal }));

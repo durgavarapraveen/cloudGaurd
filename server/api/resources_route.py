@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 from services.resource_service import (
-    all_resources_service_aws,
+    # all_resources_service_aws,
     get_all_resources_from_DB_service,
     get_resource_summary,
     get_resource_summary_with_ID_Service,
@@ -52,22 +52,20 @@ async def get_resource_db(
         service_filter=service.split(",") if service else None
     )
 
-@router.get(
-    "/resources_cloud/{account_identifier}",
-    dependencies=[Depends(require_permission("resource:read"))]
-)
-async def get_resource_aws(
-    account_identifier: str,
-    request: Request,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
-):
-    return await all_resources_service_aws(
-        db=db,
-        account_identifier=account_identifier,
-        request=request,
-        background_tasks=background_tasks
-    )
+# @router.get(
+#     "/resources_cloud/{account_identifier}",
+#     dependencies=[Depends(require_permission("resource:read"))]
+# )
+# async def get_resource_aws(
+#     account_identifier: str,
+#     request: Request,
+#     background_tasks: BackgroundTasks,
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     return await scan_account(
+#         account_identifier=account_identifier,
+#         organization_id=request.state.organizationId,
+#     )
 
 
 @router.get("/summary_ID/{resourceSummaryID}",

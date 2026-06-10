@@ -20,6 +20,8 @@ from models.userModel import User
 from models.groups_Model import UserGroups
 from models.rolesModel import Role
 from models.passwordResetToken_model import PasswordResetToken
+from models.orginization_model import Organization
+from models.cloudAccount_Model import CloudAccounts
 
 from schemas.user_schema import (
     CreateUserRequest,
@@ -73,7 +75,8 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
         select(User)
         .where(User.email == data.email)
         .options(
-            selectinload(User.roles)
+            selectinload(User.roles),
+            selectinload(User.organization).selectinload(Organization.cloud_accounts).selectinload(CloudAccounts.resource_last_fetch)
         )
     )
     user = result.scalar_one_or_none()
@@ -85,22 +88,33 @@ async def login_user(db: AsyncSession, data: UserLoginRequest):
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
     root_user = False
-    print("User Roles:", [role.name for role in user.roles])  # Debugging line
     for role in user.roles:
         if role.name == "rootUserOrg":
             root_user = True
             break
         
-
     access_token = create_access_token(user.id, user.organization_id, secret_key, root_user)
     refresh_token = create_refresh_token(user.id, secret_key)
     
+    github_connected = bool(
+        user.organization and user.organization.github_installation_id
+    )
 
+    cloud_account_connected = bool(
+        user.organization and user.organization.cloud_accounts
+    )
+
+    
+    
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "user_id": str(user.id),
         "message": "Login successful",
+        "github_connected": github_connected,
+        "cloud_account_connected": cloud_account_connected,
+        "username": user.username,
+        "email": user.email,
     }
 
 async def delete_user(db: AsyncSession, user_id: str):

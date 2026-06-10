@@ -63,6 +63,15 @@ class Organization(Base):
         onupdate=func.now(),
     )
     
+    github_installation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "githubInstallation.id",
+            ondelete="SET NULL"
+        ),  
+        nullable=True,
+    )
+    
     owner = relationship(
         "RootUsers",
         back_populates="organization",

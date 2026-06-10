@@ -1,4 +1,5 @@
 
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,88 +26,20 @@ from api.security_analyzer_routes import router as security_analyzer_router
 from api.github_auth_route import router as github_auth_router
 from api.github_routes import router as github_router
 from api.github_webhook_route import router as webhook_router
+from integration.SSE.sse_route import router as sse_router
 
 from db.postgressDB import engine, AsyncSessionLocal
 from middlewares.userVerificationMiddleware import AuthMiddleware
-from models.Base import Base
-from models.resourceSchedular_model import ResourceSchedular
-from schedulars.schedular import scheduler
-from schedulars.resourceSchedular_job import schedular_resources  # ✅ async function
-from apscheduler.triggers.interval import IntervalTrigger
+from schedulars.scheduler_setup import start_scheduler, stop_scheduler
+
 
 
 # ✅ Define lifespan BEFORE app
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # DB tables
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        print("PostgreSQL connected successfully")
-    except Exception as e:
-        print(f"Database connection failed: {e}")
-
-    # Start scheduler
-    scheduler.start()
-
-    # Reload active schedulers from DB
-    async with AsyncSessionLocal() as db:
-        # result = await db.execute(
-        #     select(ResourceSchedular).where(ResourceSchedular.is_active == True)
-        # )
-        # active_schedulers = result.scalars().all()
-        # now = datetime.now(timezone.utc)
-
-        # for s in active_schedulers:
-        #     if s.stop_date and now > s.stop_date:
-        #         s.is_active = False
-        #         continue
-
-        #     scheduler.add_job(
-        #         run_scheduler_job,          # ✅ async function, AsyncIOScheduler handles it
-        #         trigger=IntervalTrigger(
-        #             hours=s.frequency,      # ✅ hours not days (your model uses hours)
-        #             start_date=get_next_start_date(s.fetch_time),
-        #             end_date=s.stop_date,
-        #             timezone=timezone.utc,
-        #         ),
-        #         id=str(s.id),
-        #         args=[str(s.id)],
-        #         replace_existing=True,
-        #     )
-
-        #     scheduled_today = get_scheduled_time_today(s.fetch_time)
-        #     last_scan = s.last_scan
-        #     missed_today = scheduled_today <= now and (
-        #         last_scan is None or last_scan < scheduled_today
-        #     )
-        #     if missed_today:
-        #         scheduler.add_job(
-        #             run_scheduler_job,
-        #             trigger=DateTrigger(run_date=now, timezone=timezone.utc),
-        #             id=f"{s.id}:catchup",
-        #             args=[str(s.id)],
-        #             replace_existing=True,
-        #         )
-
-        # await db.commit()
-        
-        now = datetime.now(timezone.utc)
-        scheduler.add_job(
-                schedular_resources,          
-                trigger=IntervalTrigger(
-                    minutes=30,     
-                    start_date=now,
-                    end_date=None,
-                    timezone=timezone.utc,
-                ),
-                id="global-resource-sync",
-                replace_existing=True,
-            )
-
-    yield  # app runs here
-
-    scheduler.shutdown()
+    start_scheduler()
+    yield
+    stop_scheduler()
 
 
 # ✅ Single app definition with lifespan
@@ -116,6 +49,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "*",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
@@ -148,12 +82,16 @@ app.include_router(security_analyzer_router)
 app.include_router(github_auth_router)
 app.include_router(github_router)
 app.include_router(webhook_router)
-
+app.include_router(sse_router)
 
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to CloudGuard API!"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 import json
 
@@ -166,13 +104,13 @@ async def sns_webhook(request: Request):
     
     message = json.loads(payload["Message"])
 
-    print("AWS Event:", message)
     
     source = message["source"]
     if source != "aws.cloudshell":
         print(source)
-        
-        
-        
-
     return {"status": "processed"}
+
+@app.on_event("startup")
+async def startup():
+    # Start file watcher as background task
+    asyncio.create_task(watch_files())

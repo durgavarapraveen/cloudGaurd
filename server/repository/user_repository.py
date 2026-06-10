@@ -202,3 +202,16 @@ async def edit_user_info(
         "username": user.username,
         "email": user.email,
     }
+
+async def get_current_user(request: Request, db: AsyncSession):
+    userId = request.state.user_id
+    if not userId:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user = await db.execute(
+        select(User).where(User.id == userId)
+        .options(selectinload(User.organization))
+    )
+    user = user.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

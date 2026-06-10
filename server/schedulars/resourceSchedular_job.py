@@ -5,8 +5,8 @@ import asyncio
 
 from db.postgressDB import AsyncSessionLocal
 from datetime import datetime, timezone
-from fastapi import Request
-from services.resource_service import all_resources_service_aws
+from fastapi import Request, BackgroundTasks
+from services.resource_service import scan_account
 import asyncio
 from .schedular import scheduler
 
@@ -33,31 +33,31 @@ async def run_scheduler_job(schedular_id: str):
         
 
 async def schedular_resources():
-    print(f"Scheduler Called ")
+    print("Scheduler: starting AWS resource sync")
     async with AsyncSessionLocal() as db:
-        clouds = await db.execute(
-            select(CloudAccounts)
+        result = await db.execute(select(CloudAccounts))
+        clouds = result.scalars().all()
+
+    if not clouds:
+        print("Scheduler: no cloud accounts found, skipping")
+        return
+
+    print(f"Scheduler: scanning {len(clouds)} cloud account(s)")
+
+    tasks = [
+        scan_account(
+            account_identifier=str(cloud.account_identifier),
+            organization_id=str(cloud.organization_id),
         )
-        clouds = clouds.scalars().all()
-        tasks = []
-        for cloud in clouds:
-            tasks.append(
-                scan_account(
-                    str(cloud.account_identifier),
-                    str(cloud.organization_id)
-                )
-            )
-        await asyncio.gather(*tasks)
+        for cloud in clouds
+    ]
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # log any accounts that failed without stopping the others
+    for cloud, result in zip(clouds, results):
+        if isinstance(result, Exception):
+            print(f"Scheduler: scan failed for {cloud.account_identifier} — {result}")
+        else:
+            print(f"Scheduler: scan queued for {cloud.account_identifier}")
             
-async def scan_account(account_identifier, organization_id):
-    
-    scope = {"type": "http"}
-    request = Request(scope)
-    request.state.organizationId = str(organization_id)
-    
-    async with AsyncSessionLocal() as db:
-        await all_resources_service_aws(
-            db=db,
-            account_identifier=account_identifier,
-            request=request
-        )

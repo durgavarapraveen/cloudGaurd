@@ -1,5 +1,8 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import { SSEProvider } from "@/context/sseContext";
+import { githubConnected, organizationConnected } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "CloudGuard",
@@ -17,7 +20,7 @@ export default function RootLayout({
         className="bg-[#0a0a0f] text-slate-200 antialiased min-h-screen flex"
         suppressHydrationWarning
       >
-        {children}
+        <SSEProvider>{children}</SSEProvider>
       </body>
     </html>
   );

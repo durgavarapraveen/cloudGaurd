@@ -95,8 +95,6 @@ async def github_callback(
         )
         db.add(installation)
 
-    await db.commit()
-
     # Get org slug
     result = await db.execute(
         select(Organization).where(Organization.id == organization_id)
@@ -106,6 +104,8 @@ async def github_callback(
         raise HTTPException(404, "Organization not found")
 
     slug = getattr(organization, "slug", None)
+    organization.github_installation_id = installation_id
+    await db.commit()
     if slug:
         url = f"http://{slug}.localhost:3000/organization/github?connected=true"
     else:

@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: cloudguard-server
     restart: unless-stopped
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
     environment:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
@@ -52,7 +52,7 @@ services:
       GITHUB_PRIVATE_KEY: ${GITHUB_PRIVATE_KEY:-}
       GITHUB_PRIVATE_KEY_PATH: /run/secrets/github_private_key.pem
     ports:
-      - "8001:8000"
+      - "8001:8001"
     volumes:
       - ../server:/app
       - ./github_private_key.pem:/run/secrets/github_private_key.pem:ro
@@ -62,13 +62,15 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
-          'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:8000/'', timeout=2)"',
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)",
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s # give uvicorn + scheduler + DB connections time to boot
 
   frontend:
     build:
@@ -87,7 +89,7 @@ services:
       NODE_ENV: development
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
       NEXT_PUBLIC_BACKEND: ${NEXT_PUBLIC_BACKEND}
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://server:8000}
+      BACKEND_INTERNAL_URL: http://server:8001
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
 

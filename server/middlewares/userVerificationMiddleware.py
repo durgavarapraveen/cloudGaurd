@@ -27,7 +27,9 @@ EXCLUDED_ROUTES = [
     "/redoc",
     "/openapi.json",
     "/docs/oauth2-redirect",
-    "/"
+    "/",
+    "/health",
+    # "/sse/stream",
 ]
 
 EXCLUDED_ROUTE_PREFIXES = [
@@ -56,6 +58,7 @@ def normalize_tenant_slug(slug: str | None) -> str | None:
 class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
+        print(request.url.path)
         
         if request.url.path == "/webhooks/aws-events":
          return await call_next(request)
@@ -85,7 +88,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 algorithms=["HS256"]
             )
             
-            print(payload.get("type"))
 
             if payload.get("type") != "access":
                 return JSONResponse(
