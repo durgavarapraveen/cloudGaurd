@@ -1,7 +1,11 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgressDB import get_db
+
+from middlewares.userPermissions import require_permission
 
 from services.driftResources_service import (
     getAllDriftResponse_service,
@@ -12,7 +16,8 @@ from services.driftResources_service import (
 
 router = APIRouter(
     prefix="/drift",
-    tags=["Cloud Account Resources"]
+    tags=["Cloud Account Resources"],
+    dependencies=[Depends(require_permission("drift:read"))],
 )
 
 
@@ -52,9 +57,11 @@ async def getAllDriftResponseforUser(
         status=status
     )
 
-@router.put("/update_admin/{driftId}")
+@router.put("/update_admin/{driftId}",
+    dependencies=[Depends(require_permission("drift:update"))],
+)
 async def update_drift_admin_route(
-    driftId: str,
+    driftId: uuid.UUID,
     assigned_grp: str,
     request: Request,
     db: AsyncSession = Depends(get_db)
@@ -62,14 +69,16 @@ async def update_drift_admin_route(
     return await update_drift_admin_service(
         db=db,
         assigned_grp=assigned_grp,
-        driftId=driftId,
+        driftId=str(driftId),
         request=request
     )
 
 
-@router.put("/update_user/{driftId}")
+@router.put("/update_user/{driftId}",
+    dependencies=[Depends(require_permission("drift:update"))],
+)
 async def update_drift_user_route(
-    driftId: str,
+    driftId: uuid.UUID,
     status: str,
     comment: str,
     request: Request,
@@ -79,6 +88,6 @@ async def update_drift_user_route(
         db=db,
         comment=comment,
         status=status,
-        driftId=driftId,
+        driftId=str(driftId),
         request=request
     )

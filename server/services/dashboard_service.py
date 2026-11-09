@@ -318,7 +318,7 @@ async def scan_resources_service(db: AsyncSession,accountIdentifier: str, reques
     cloudAccount = await getcloudAccountwithAccountIdentifier(db, account_identifier=accountIdentifier, request=request)   
     cloud_account_id = cloudAccount.id
     
-    resources = await get_all_resource(db=db, account_identifier=accountIdentifier,cloud_account_id=cloud_account_id, request=request)
+    resources = await get_all_resource(db=db, services=None, cloud_account_id=cloud_account_id, request=request)
     
     mongo_docs = await get_policies()
     rules = flatten_mongo_rules(mongo_docs)

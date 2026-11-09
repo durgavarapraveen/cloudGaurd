@@ -36,6 +36,23 @@ class Envs:
     PRIVACY_URL = os.getenv("PRIVACY_URL", "")
 
 
+def build_tenant_login_url(slug: str) -> str:
+    """
+    Build an organization's sign-in URL from FRONT_END_URL and its slug.
+
+    The slug is prefixed to the host, not to the scheme, so
+    FRONT_END_URL="http://localhost:3000" and slug="acme" produce
+    "http://acme.localhost:3000/login".
+    """
+    base = (os.getenv("FRONT_END_URL") or "http://localhost:3000").strip().rstrip("/")
+
+    scheme, separator, host = base.partition("://")
+    if not separator:
+        scheme, host = "http", base
+
+    return f"{scheme}://{slug}.{host}/login"
+
+
 conf = ConnectionConfig(
     MAIL_USERNAME=Envs.MAIL_USERNAME,
     MAIL_PASSWORD=Envs.MAIL_PASSWORD,

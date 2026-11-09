@@ -80,7 +80,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 algorithms=["HS256"]
             )
             
-            print(payload.get("type"))
 
             if payload.get("type") != "access":
                 return JSONResponse(

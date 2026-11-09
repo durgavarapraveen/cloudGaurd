@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,7 +51,7 @@ async def CreateNewRole(
 
 @router.get("/id/{id}", dependencies=[Depends(require_permission("roles:read"))])
 async def getRoleByID(
-    id: str,
+    id: uuid.UUID,
     request:Request,
     db: AsyncSession = Depends(get_db)   
 ):
@@ -67,7 +69,7 @@ async def getRoleByName(
     dependencies=[Depends(require_permission("roles:delete"))]
 )
 async def deleteRole(
-    id: str,
+    id: uuid.UUID,
     request:Request,
     db: AsyncSession = Depends(get_db)   
 ):
@@ -78,7 +80,7 @@ async def deleteRole(
     dependencies=[Depends(require_permission("roles:write"))]
 )
 async def editRolePermissions(
-    id: str,
+    id: uuid.UUID,
     data: RolePermissionUpdateRequest,
     request:Request,
     db: AsyncSession = Depends(get_db)   

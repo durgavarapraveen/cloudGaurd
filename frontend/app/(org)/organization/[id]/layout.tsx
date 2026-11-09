@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { consumeSessionHandoff, hasSession } from "@/lib/session";
+import { hasSession } from "@/lib/session";
 import Sidebar from "@/components/Sidebar";
 import { use } from "react";
 
@@ -176,7 +176,6 @@ export default function OrgLayout({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    consumeSessionHandoff();
     // Auth is stored in localStorage, so this guard has to hydrate after mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAuthenticated(hasSession());

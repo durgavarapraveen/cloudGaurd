@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +21,8 @@ from schemas.userGroup_schema import CreateNewGroup
 
 router = APIRouter(
     prefix="/group",
-    tags=["User Group"]
+    tags=["User Group"],
+    dependencies=[Depends(require_permission("group:read"))],
 )
 
 @router.get("")
@@ -32,42 +35,49 @@ async def getAllGroups(
 @router.get("/{id}")
 async def getAllGroups(
     request: Request,
-    id: str,
+    id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    return await getGroupWithID_service(db=db, id=id, request=request)
+    return await getGroupWithID_service(db=db, id=str(id), request=request)
 
-@router.post("/create")
+@router.post("/create",
+    dependencies=[Depends(require_permission("group:create"))],
+)
 async def cerateNewGroup(
     request: Request,
     data: CreateNewGroup,
     db: AsyncSession = Depends(get_db)
 ):
-    print(data)
     return await CreateUserGroup_service(db=db, data=data, request=request)
 
-@router.put("/edit/{id}")
+@router.put("/edit/{id}",
+    dependencies=[Depends(require_permission("group:update"))],
+)
 async def cerateNewGroup(
     request: Request,
     data: CreateNewGroup,
-    id: str,
+    id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    return await editGroup_service(db=db, data=data, id=id, request=request)
+    return await editGroup_service(db=db, data=data, id=str(id), request=request)
 
-@router.put("/addUsers/{id}")
+@router.put("/addUsers/{id}",
+    dependencies=[Depends(require_permission("group:update"))],
+)
 async def createNewGroup(
     request: Request,
     users: list[str],
-    id: str,
+    id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    return await addUsersToGroup_service(db=db, users=users, id=id, request=request)
+    return await addUsersToGroup_service(db=db, users=users, id=str(id), request=request)
 
-@router.delete("/delete/{id}")
+@router.delete("/delete/{id}",
+    dependencies=[Depends(require_permission("group:delete"))],
+)
 async def getAllGroups(
     request: Request,
-    id: str,
+    id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    return await deleteGroup_service(db=db, id=id, request=request)
+    return await deleteGroup_service(db=db, id=str(id), request=request)

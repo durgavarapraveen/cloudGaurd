@@ -1,8 +1,8 @@
 from typing import List
 
 from fastapi import HTTPException, Request
-from psycopg2 import IntegrityError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 

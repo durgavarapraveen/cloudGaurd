@@ -14,7 +14,6 @@ async def get_all_permissions(db: AsyncSession, request: Request):
 
 async def add_permission(db: AsyncSession, permission_name: str, request: Request):
     organization_id = request.state.organizationId
-    print(organization_id)
     # Check if permission already exists
     existing_permission = await db.execute(
         select(Permission).where(
