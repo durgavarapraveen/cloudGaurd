@@ -1,4 +1,9 @@
-from aiohttp import ClientError
+from auth.secrets_box import decrypt_credentials
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    EndpointConnectionError,
+)
 from fastapi import HTTPException, Request
 from datetime import datetime, date
 from uuid import UUID
@@ -69,7 +74,7 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
         )
         
 
-    creds = cloudAccount.credentials
+    creds = decrypt_credentials(cloudAccount.credentials)
     aws_key = creds.get("access_key_id")
     aws_secret = creds.get("secret_access_key")
 
@@ -79,12 +84,28 @@ async def all_resources_service_aws(db: AsyncSession, account_identifier: str, s
     try:
         session = aws_session(aws_key=aws_key, aws_secret=aws_secret)
     except ClientError as e:
-        error_code = e.response["Error"]["Code"]
-        
-        if error_code == "InvalidClientTokenId":
-            raise HTTPException(status_code=400, detail="Invalid AWS Access Key ID")
-        elif error_code == "AuthFailure":
-            raise HTTPException
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+
+        messages = {
+            "InvalidClientTokenId": "Invalid AWS access key ID",
+            "SignatureDoesNotMatch": "Invalid AWS secret access key",
+            "AuthFailure": "AWS rejected these credentials",
+            "AccessDenied": "These AWS credentials lack read permission",
+            "ExpiredToken": "These AWS credentials have expired",
+            "UnrecognizedClientException": "AWS did not recognise these credentials",
+        }
+
+        raise HTTPException(
+            status_code=400,
+            detail=messages.get(
+                error_code, f"AWS rejected these credentials ({error_code})"
+            ),
+        )
+    except (BotoCoreError, EndpointConnectionError) as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach AWS: {type(e).__name__}",
+        )
 
     resources = await collect_all(session=session, services=services)
     resource_count = resources["summary"]["total_resources"]

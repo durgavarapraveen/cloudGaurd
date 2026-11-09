@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,14 +48,14 @@ async def login(
 
 @router.put("/logout/{user_id}")
 async def logout(
-    user_id: str,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ): 
     return await logout_user(db, user_id)
 
 @router.delete("/delete/{user_id}")
 async def deleteUser(
-    user_id: str,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
     return await delete_user(db, user_id)
@@ -67,12 +69,12 @@ async def refresh_token(
 
 @router.post("/change_password/{userId}")
 async def change_password(
-    userId: str,
+    userId: uuid.UUID,
     newPassword: str,
     oldPassword: str,
     db: AsyncSession = Depends(get_db),
 ):
-    return await change_password_service(userId=userId, db=db, Newpassword=newPassword, oldPassword=oldPassword)
+    return await change_password_service(userId=str(userId), db=db, Newpassword=newPassword, oldPassword=oldPassword)
 
 @router.post("/forgot-password")
 async def forgot_password(

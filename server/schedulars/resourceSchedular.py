@@ -1,5 +1,12 @@
+import logging
 
-from aiohttp import ClientError
+
+from auth.secrets_box import decrypt_credentials
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    EndpointConnectionError,
+)
 from fastapi import HTTPException
 from datetime import datetime
 from datetime import datetime, timezone
@@ -16,6 +23,8 @@ from services.resource_service import sanitize_for_json, hash_resource
 from utils.aws_session import get_session as aws_session
 
 from scanners.AWS.aws_scanner import collect_all
+
+logger = logging.getLogger(__name__)
 
 
 async def all_resources_service_aws(
@@ -47,7 +56,7 @@ async def all_resources_service_aws(
         )
         
 
-    creds = cloudAccount.credentials
+    creds = decrypt_credentials(cloudAccount.credentials)
     aws_key = creds.get("access_key_id")
     aws_secret = creds.get("secret_access_key")
 
@@ -57,13 +66,23 @@ async def all_resources_service_aws(
     try:
         session = aws_session(aws_key=aws_key, aws_secret=aws_secret)
     except ClientError as e:
-        print(f"AWS session creation failed: {str(e)}")
-        error_code = e.response["Error"]["Code"]
-        
-        if error_code == "InvalidClientTokenId":
-            raise HTTPException(status_code=400, detail="Invalid AWS Access Key ID")
-        elif error_code == "AuthFailure":
-            raise HTTPException
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+
+        logger.warning(
+            "AWS session creation failed for scheduled scan: %s", error_code
+        )
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"AWS rejected these credentials ({error_code})",
+        )
+    except (BotoCoreError, EndpointConnectionError) as e:
+        logger.warning("Could not reach AWS for scheduled scan: %s", type(e).__name__)
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach AWS: {type(e).__name__}",
+        )
 
     resources = await collect_all(session=session, services=services)
     resource_count = resources["summary"]["total_resources"]

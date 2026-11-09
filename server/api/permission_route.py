@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +48,7 @@ async def createPermission(
     dependencies=[Depends(require_permission("permissions:delete"))]
 )
 async def deletePermission(
-    id: str,
+    id: uuid.UUID,
     db: AsyncSession = Depends(get_db)   
 ):
-    return await delete_permission_by_id(db, id=id)
+    return await delete_permission_by_id(db, id=str(id))
