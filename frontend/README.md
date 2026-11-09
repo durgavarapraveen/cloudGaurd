@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CloudGuard frontend
 
-## Getting Started
+The Next.js 16 (App Router) user interface for CloudGuard. For the whole
+project — architecture, setup, API reference and known issues — see the
+[root README](../Readme.md).
 
-First, run the development server:
+## Running it
+
+The supported way is the Compose stack from the repository root, which brings up
+PostgreSQL, MongoDB, the API and this app together:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build
+```
+
+To run only this app against an API you started yourself:
+
+```bash
+npm install
+```
+
+Create `frontend/.env.local`:
+
+```env
+BACKEND_INTERNAL_URL=http://localhost:8000
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Set no `NEXT_PUBLIC_BACKEND_URL` or `NEXT_PUBLIC_BACKEND` value.**
+> With both unset, `lib/api.ts` calls the relative path `/backend`, which
+> `next.config.ts` rewrites to `BACKEND_INTERNAL_URL` on the server. Every
+> request is then same-origin and no CORS check applies. Setting either variable
+> makes the browser call the API cross-origin from a tenant subdomain, which the
+> API's CORS policy may refuse.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Reaching the UI
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The tenant comes from the hostname, not from a path:
 
-## Learn More
+| URL | Context |
+| --- | --- |
+| `http://localhost:3000/rootLogin` | Platform operator |
+| `http://<slug>.localhost:3000/login` | Organization user |
 
-To learn more about Next.js, take a look at the following resources:
+Browsers resolve `*.localhost` to `127.0.0.1` with no hosts-file change.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+app/
+  (public)/    Landing page and auth pages
+  (org)/       Organization-scoped pages
+  (admin)/     Platform operator pages
+components/    Shared React components
+lib/
+  api.ts       Typed API client, token refresh, tenant slug resolution
+  props.ts     Shared TypeScript types
+  routes.ts    Public and protected route lists
+  session.ts   Token and permission storage
+proxy.ts       URL rewrites for nested routes
+```
 
-## Deploy on Vercel
+## Checks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx tsc --noEmit
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+```
+
+```bash
+npm run build
+```
+
+CI runs all three on every pull request.
+
+## Notes for contributors
+
+- Session tokens live in `localStorage` (see `lib/session.ts`). Any XSS flaw can
+  read them, so be careful with `dangerouslySetInnerHTML` and with rendering
+  values that came from a scan target.
+- Never read credentials from a URL. A `#session=` fragment handler used to
+  exist here and was removed because it allowed session fixation.
+- `lib/api.ts` attaches the `X-Tenant-Slug` header. The API treats it as a
+  confirmation of the token's organization, never as a selector, so sending a
+  different slug is rejected rather than honoured.

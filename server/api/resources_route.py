@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,24 +78,24 @@ async def get_resource_aws(
     dependencies=[Depends(require_permission("resource:summary:read"))]            
 )
 async def get_resourceSummary_by_ID(
-    resourceSummaryID: str,
+    resourceSummaryID: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    return await get_resource_summary_with_ID_Service(db=db, resourceSummaryID=resourceSummaryID,  request=request)
+    return await get_resource_summary_with_ID_Service(db=db, resourceSummaryID=str(resourceSummaryID),  request=request)
 
 @router.get("/summary_ID/{resourceSummaryID}/{resourceId:path}",
     dependencies=[Depends(require_permission("resource:summary:read"))]
 )
 async def get_resource_detail_for_summary(
-    resourceSummaryID: str,
+    resourceSummaryID: uuid.UUID,
     resourceId: str,
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     return await get_resource_detail_for_summary_Service(
         db=db,
-        resourceSummaryID=resourceSummaryID,
+        resourceSummaryID=str(resourceSummaryID),
         resourceId=resourceId,
         request=request
     )

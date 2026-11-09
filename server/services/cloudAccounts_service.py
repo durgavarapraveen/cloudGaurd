@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 
+from auth.secrets_box import encrypt_credentials
 from models.cloudAccount_Model import CloudAccounts
 from schemas.CloudAccounts_Schema import (
     CreateNewCloudAccount,
@@ -28,7 +29,6 @@ def get_request_organization_id(request: Request):
 async def createNewCloudAccount_Service(db: AsyncSession, data: CreateNewCloudAccount, request: Request):
     id = getattr(request.state, "user_id", None)
     userID = uuid.UUID(str(id))
-    print("User ID from request state:", userID)
     organization_id = get_request_organization_id(request)
     existing_cloudAccount = await getCloudAccountwithIdentifier_Repository(db, data.account_identifier, request)
     if existing_cloudAccount:
@@ -42,7 +42,7 @@ async def createNewCloudAccount_Service(db: AsyncSession, data: CreateNewCloudAc
         organization_id=organization_id,
         created_by=userID,
         region=data.region,
-        credentials=data.credentials,
+        credentials=encrypt_credentials(data.credentials),
         provider=data.provider
     )
     return await createCloudAccount_Repository(db, data=cloudAccount)

@@ -12,7 +12,25 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d cloudguard"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    container_name: cloudguard-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,6 +45,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY}
+      ALLOW_ROOT_REGISTRATION: ${ALLOW_ROOT_REGISTRATION:-false}
+      CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-}
       MONGO_URI: ${MONGO_URI}
       DATABASE_NAME: ${DATABASE_NAME}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
@@ -49,6 +70,8 @@ services:
       - ../server:/app
     depends_on:
       postgres:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
     healthcheck:
       test:
@@ -95,5 +118,4 @@ services:
 
 volumes:
   postgres_data:
-  frontend_node_modules:
-  frontend_next:
+  mongo_data:

@@ -1,6 +1,7 @@
 from fastapi import BackgroundTasks
 from fastapi_mail.errors import ConnectionErrors
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from functools import lru_cache
 from pathlib import Path
 import os
 import logging
@@ -25,7 +26,7 @@ def _bool_env(name: str, default: bool = False) -> bool:
 class Envs:
     MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
-    MAIL_FROM = os.getenv("MAIL_FROM", MAIL_USERNAME)
+    MAIL_FROM = os.getenv("MAIL_FROM") or MAIL_USERNAME or "no-reply@example.com"
     MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "CloudGuard")
@@ -36,19 +37,48 @@ class Envs:
     PRIVACY_URL = os.getenv("PRIVACY_URL", "")
 
 
-conf = ConnectionConfig(
-    MAIL_USERNAME=Envs.MAIL_USERNAME,
-    MAIL_PASSWORD=Envs.MAIL_PASSWORD,
-    MAIL_FROM=Envs.MAIL_FROM,
-    MAIL_PORT=Envs.MAIL_PORT,
-    MAIL_SERVER=Envs.MAIL_SERVER,          
-    MAIL_FROM_NAME=Envs.MAIL_FROM_NAME,
-    MAIL_STARTTLS=Envs.MAIL_STARTTLS,
-    MAIL_SSL_TLS=Envs.MAIL_SSL_TLS,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
-    TEMPLATE_FOLDER=str(TEMPLATE_FOLDER),
-)
+def build_tenant_login_url(slug: str) -> str:
+    """
+    Build an organization's sign-in URL from FRONT_END_URL and its slug.
+
+    The slug is prefixed to the host, not to the scheme, so
+    FRONT_END_URL="http://localhost:3000" and slug="acme" produce
+    "http://acme.localhost:3000/login".
+    """
+    base = (os.getenv("FRONT_END_URL") or "http://localhost:3000").strip().rstrip("/")
+
+    scheme, separator, host = base.partition("://")
+    if not separator:
+        scheme, host = "http", base
+
+    return f"{scheme}://{slug}.{host}/login"
+
+
+@lru_cache(maxsize=1)
+def get_mail_config() -> ConnectionConfig:
+    """
+    Build the SMTP configuration on first use.
+
+    This is deliberately lazy. ConnectionConfig validates MAIL_FROM as an email
+    address, so building it at import time made the whole application
+    unimportable on any deployment that had not configured email yet - the API
+    could not start and the test suite could not collect. Now a missing or
+    invalid mail configuration fails only when an email is actually sent.
+    """
+    return ConnectionConfig(
+        MAIL_USERNAME=Envs.MAIL_USERNAME,
+        MAIL_PASSWORD=Envs.MAIL_PASSWORD,
+        MAIL_FROM=Envs.MAIL_FROM,
+        MAIL_PORT=Envs.MAIL_PORT,
+        MAIL_SERVER=Envs.MAIL_SERVER,
+        MAIL_FROM_NAME=Envs.MAIL_FROM_NAME,
+        MAIL_STARTTLS=Envs.MAIL_STARTTLS,
+        MAIL_SSL_TLS=Envs.MAIL_SSL_TLS,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True,
+        TEMPLATE_FOLDER=str(TEMPLATE_FOLDER),
+    )
+
 
 async def _send_message(message: MessageSchema, template_name: str) -> None:
     if Envs.MAIL_SUPPRESS_SEND:
@@ -56,7 +86,7 @@ async def _send_message(message: MessageSchema, template_name: str) -> None:
         return
 
     try:
-        fm = FastMail(conf)
+        fm = FastMail(get_mail_config())
         await fm.send_message(message, template_name=template_name)
     except ConnectionErrors as exc:
         if Envs.MAIL_SERVER == "smtp.gmail.com":

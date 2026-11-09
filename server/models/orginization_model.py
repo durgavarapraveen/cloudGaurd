@@ -44,7 +44,7 @@ class Organization(Base):
     
     is_active: Mapped[Boolean] = mapped_column(
         Boolean,
-        default=False
+        default=True
     )
     
     is_deleted: Mapped[Boolean] = mapped_column(
