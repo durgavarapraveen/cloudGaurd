@@ -1,8 +1,10 @@
-from fastapi import HTTPException, Request
+from datetime import datetime, timezone
+
+from fastapi import BackgroundTasks, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
-from psycopg2 import IntegrityError
+from sqlalchemy.exc import IntegrityError
 import uuid
 
 from schemas.rootUser_schema import CreateNewRootUserRequest, LoginRootUserRequest
@@ -23,7 +25,12 @@ from models.userModel import User
 from models.orginization_model import Organization
 from models.rolesModel import Role
 
-from auth.password import hash_password, verify_password
+from auth.password import generate_temp_password, hash_password, verify_password
+
+from services.mail_service import (
+    build_tenant_login_url,
+    send_admin_created_account_email,
+)
 
 from auth.rootUser_jwt import create_access_token, create_refresh_token, checkRefreshTokenValidity
 
@@ -40,10 +47,34 @@ load_dotenv(ROOT_DIR / "infra" / ".env")
 
 secret_key = os.getenv("JWT_SECRET_KEY")
 
+
+def _bool_env(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 async def create_rootUser(db: AsyncSession, data: CreateNewRootUserRequest):
-    
+
+    # Bootstrap only. This endpoint is unauthenticated so the very first
+    # operator can be created on a fresh deployment; once one exists it is
+    # closed, otherwise anyone who can reach the API could grant themselves
+    # platform-wide access. Set ALLOW_ROOT_REGISTRATION=true to reopen it.
+    existing_count = await db.scalar(select(func.count()).select_from(RootUsers))
+
+    if existing_count and not _bool_env("ALLOW_ROOT_REGISTRATION"):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Root registration is closed. A platform operator already "
+                "exists."
+            ),
+        )
+
     existing_user = await get_rootUser_username(db, data.username)
-    
+
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
     
@@ -138,19 +169,34 @@ async def get_all_organizations_service(db: AsyncSession, userId: str):
     
     return user
 
-async def create_new_user(request: Request, data: CreateUserByRootUser,db: AsyncSession):
+async def create_new_user(
+    request: Request,
+    data: CreateUserByRootUser,
+    db: AsyncSession,
+    background_tasks: BackgroundTasks,
+):
     existing_user = await get_user_by_email(db, data.email, request)
 
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
-    
-    password = "12345678"
-    
+
+    organization = await CheckOrganizationwithID(db, str(data.organizationId))
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    password = generate_temp_password()
+
+    # Scope the lookup to this organization. Without the organization filter a
+    # role row belonging to another tenant would be attached to this user.
     checkRole = await db.execute(
         select(Role)
-        .where(Role.name == "rootUserOrg")
+        .where(
+            Role.name == "rootUserOrg",
+            Role.organization_id == data.organizationId,
+        )
     )
-    
+
     checkRole = checkRole.scalar_one_or_none()
 
     if checkRole:
@@ -180,6 +226,18 @@ async def create_new_user(request: Request, data: CreateUserByRootUser,db: Async
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="Email already registered")
+
+    send_admin_created_account_email(
+        background_tasks=background_tasks,
+        email_to=user.email,
+        username=user.username,
+        temp_password=password,
+        admin_name="CloudGuard Admin",
+        created_at=datetime.now(timezone.utc).strftime("%b %d, %Y at %I:%M %p UTC"),
+        roles=[role.name],
+        login_url=build_tenant_login_url(organization.slug),
+    )
+
     return user
 
 
@@ -187,7 +245,6 @@ async def createNewOrganizationService(db: AsyncSession, data: CreateNewOrganiza
     userID = uuid.UUID(str(userId))
     
     existingOrganization = await CheckOrganization(db, data.name)
-    print(existingOrganization)
     if existingOrganization:
         raise HTTPException(status_code=400, detail="Organization with this Name Exists")
     organization = Organization(
@@ -205,7 +262,6 @@ async def get_all_users_service(db: AsyncSession, organizationId: str):
         .where(User.organization_id == organizationId)
     )
     users = users.scalars().all()
-    print(users)
     return users
 
 async def deleteUser(db: AsyncSession, userId: str):

@@ -84,7 +84,6 @@ async def makeSchedularInactive_service(db: AsyncSession, schedularId: str,reque
 async def cerateSchedular_service(db: AsyncSession, data: CreateNewScheduler,cloudIdentifier: str, request: Request):
     organization_id = get_request_organization_id(request)
     cloudAccount = await getcloudAccountwithAccountIdentifier(db=db, account_identifier=cloudIdentifier, request=request)
-    print(data)
     schedular = ResourceSchedular(
         name=data.name,
         fetch_time=data.fetch_time,

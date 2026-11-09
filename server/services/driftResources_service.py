@@ -1,4 +1,3 @@
-from aiohttp import ClientError
 from fastapi import HTTPException, Request
 from datetime import datetime, date
 from uuid import UUID
