@@ -227,7 +227,7 @@ Compose reads `infra/.env`. Create that file; it is git-ignored.
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | yes | `postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard` | Async PostgreSQL DSN. Must use the `postgresql+asyncpg://` scheme. |
+| `DATABASE_URL` | yes | — | Async PostgreSQL DSN, for example `postgresql+asyncpg://admin:<password>@postgres:5432/cloudguard`. Must use the `postgresql+asyncpg://` scheme; the API refuses to start without it. |
 | `MONGO_URI` | yes | `mongodb://localhost:27017` | MongoDB connection string. |
 | `DATABASE_NAME` | no | `cloudgaurdscanner` | MongoDB database name. |
 | `JWT_SECRET_KEY` | yes | — | HS256 signing key. Must be at least 32 characters; the API refuses to start otherwise, because an empty key makes every token forgeable. |
@@ -290,11 +290,11 @@ cp infra/.env.example infra/.env
 ```env
 # PostgreSQL container
 POSTGRES_USER=admin
-POSTGRES_PASSWORD=admin123
+POSTGRES_PASSWORD=replace-with-a-password
 POSTGRES_DB=cloudguard
 
 # Backend -> PostgreSQL (service name inside the Compose network)
-DATABASE_URL=postgresql+asyncpg://admin:admin123@postgres:5432/cloudguard
+DATABASE_URL=postgresql+asyncpg://admin:replace-with-a-password@postgres:5432/cloudguard
 
 # Backend -> MongoDB
 MONGO_URI=mongodb://mongo:27017
@@ -455,7 +455,7 @@ pip install -r requirements.txt
 4. Create `server/.env` with host-facing values:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard
+DATABASE_URL=postgresql+asyncpg://admin:replace-with-a-password@localhost:5433/cloudguard
 MONGO_URI=mongodb://localhost:27017
 DATABASE_NAME=cloudgaurdscanner
 JWT_SECRET_KEY=change-me-to-a-long-random-string-of-32-chars-or-more
@@ -1304,8 +1304,8 @@ name: `mongodb://mongo:27017`.
 
 Cause: the wrong `DATABASE_URL` host or port.
 
-Fix: inside Docker, use `postgresql+asyncpg://admin:admin123@postgres:5432/cloudguard`. On the host, use
-`postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard`.
+Fix: inside Docker, use `postgresql+asyncpg://admin:replace-with-a-password@postgres:5432/cloudguard`. On the host, use
+`postgresql+asyncpg://admin:replace-with-a-password@localhost:5433/cloudguard`.
 
 ### `Bind for 0.0.0.0:3000 failed: port is already allocated`
 

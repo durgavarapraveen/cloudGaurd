@@ -71,9 +71,9 @@ def _validate_configuration() -> None:
         )
 
     if not os.getenv("DATABASE_URL", "").strip():
-        logger.warning(
-            "DATABASE_URL is not set; falling back to the local development "
-            "default."
+        raise RuntimeError(
+            "DATABASE_URL is not set. Example: "
+            "postgresql+asyncpg://admin:<password>@postgres:5432/cloudguard"
         )
 
     if not encryption_configured():

@@ -30,7 +30,16 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / "server" / ".env")
 load_dotenv(ROOT_DIR / "infra" / ".env")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://admin:admin123@localhost:5433/cloudguard")
+# No credential fallback: a hardcoded default password is both a weak default
+# and indistinguishable from a leaked secret to a scanner. The API fails fast
+# instead, which main._validate_configuration reports clearly.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. Example: "
+        "postgresql+asyncpg://admin:<password>@postgres:5432/cloudguard"
+    )
 if "@postgres:5432" in DATABASE_URL and not Path("/.dockerenv").exists():
     DATABASE_URL = DATABASE_URL.replace("@postgres:5432", "@localhost:5433")
 

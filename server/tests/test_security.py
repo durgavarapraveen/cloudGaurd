@@ -19,6 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 os.environ.setdefault("JWT_SECRET_KEY", "test-only-key-that-is-long-enough-1234567890")
 
+# Importing main pulls in the database module, which requires a DSN. Nothing
+# in these tests connects, so a credential-free URL is enough.
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://localhost/cloudguard_test")
+
 from auth.password import (  # noqa: E402
     generate_temp_password,
     hash_password,
@@ -358,3 +362,13 @@ def test_startup_accepts_a_strong_jwt_secret(monkeypatch):
     monkeypatch.setenv("JWT_SECRET_KEY", "x" * 48)
 
     main._validate_configuration()
+
+
+def test_startup_requires_a_database_url(monkeypatch):
+    import main
+
+    monkeypatch.setenv("JWT_SECRET_KEY", "x" * 48)
+    monkeypatch.setenv("DATABASE_URL", "")
+
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        main._validate_configuration()
