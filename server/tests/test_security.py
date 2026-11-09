@@ -24,6 +24,8 @@ from auth.password import (  # noqa: E402
     hash_password,
     verify_password,
 )
+from cryptography.fernet import Fernet  # noqa: E402
+
 from auth.secrets_box import (  # noqa: E402
     CredentialsEncryptionError,
     decrypt_credentials,
@@ -69,8 +71,11 @@ def test_temp_password_rejects_a_weak_length():
 # ──────────────────────────────────────────────────────────────
 
 
-FERNET_TEST_KEY = "4PlVK2WXitCKXxSwzqSeL_ad_S7Qcg3vijmIuez_WcA="
-SECOND_TEST_KEY = "V9hT2XR1iAyUDNpgRlELzLQjIX70ODXVh3FSUhtNF1w="
+# Generated per run rather than hardcoded: a committed Fernet key is
+# indistinguishable from a real leaked one to a secret scanner, and a public
+# repository should contain no key-shaped literals at all.
+FERNET_TEST_KEY = Fernet.generate_key().decode()
+SECOND_TEST_KEY = Fernet.generate_key().decode()
 
 
 @pytest.fixture
