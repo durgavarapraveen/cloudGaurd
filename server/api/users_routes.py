@@ -1,4 +1,7 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request, BackgroundTasks
+from pydantic import EmailStr
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -6,7 +9,7 @@ from typing import List
 from middlewares.userPermissions import require_permission
 from db.postgressDB import get_db
 
-from schemas.user_schema import CreateUserByAdmin
+from schemas.user_schema import CreateUserByAdmin, UserPublic
 from services.user_service import (
     create_new_user,
     delete_user,
@@ -30,7 +33,11 @@ class EditUserInfoRequest(BaseModel):
     name: str
     email: str
     
-@router.post("/create", dependencies=[Depends(require_permission("users:create"))])
+@router.post(
+    "/create",
+    dependencies=[Depends(require_permission("users:create"))],
+    response_model=UserPublic,
+)
 async def createUser(
     data: CreateUserByAdmin,
     request: Request,
@@ -45,15 +52,17 @@ async def getUsers(request: Request,db: AsyncSession = Depends(get_db)):
     return await get_all_users(db, request=request)
 
 @router.get("/id/{user_id}",
-    dependencies=[Depends(require_permission("users:read"))]
+    dependencies=[Depends(require_permission("users:read"))],
+    response_model=UserPublic,
 )
-async def getUserByID(user_id: str, request: Request, db: AsyncSession = Depends(get_db)):
-    return await get_user_by_id(user_id=user_id, request=request, db=db)
+async def getUserByID(user_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    return await get_user_by_id(user_id=str(user_id), request=request, db=db)
 
 @router.get("/email/{email}", 
-    dependencies=[Depends(require_permission("users:read"))]
+    dependencies=[Depends(require_permission("users:read"))],
+    response_model=UserPublic,
 )
-async def getUserByEmail(email: str,request: Request, db: AsyncSession = Depends(get_db)):
+async def getUserByEmail(email: EmailStr,request: Request, db: AsyncSession = Depends(get_db)):
     return await get_user_by_email(email=email, db=db, request=request)
 
 @router.get("/by-roles", dependencies=[Depends(require_permission("users:read"))])
@@ -62,29 +71,29 @@ async def getAllUsersByRoles(roles: List[str],request: Request, db: AsyncSession
 
 @router.delete("/delete/{user_id}", dependencies=[Depends(require_permission("users:delete"))])
 async def deleteUser(user_id: str,request: Request, db: AsyncSession = Depends(get_db)):
-    return await delete_user(user_id=user_id, request=request, db=db)
+    return await delete_user(user_id=str(user_id), request=request, db=db)
 
 @router.put("/edit-roles/{user_id}",
     dependencies=[Depends(require_permission("users:write"))]
 )
 async def updateUserRoles(                                    
-    user_id: str,
+    user_id: uuid.UUID,
     data: EditRolesRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)                       
 ):
-    return await edit_user_roles_service(user_id=user_id, roles=data.roles, db=db, request=request)
+    return await edit_user_roles_service(user_id=str(user_id), roles=data.roles, db=db, request=request)
 
 @router.put("/edit-info/{user_id}",
         dependencies=[Depends(require_permission("users:write"))]
     )
 async def updateUserInfo(                                    
-    user_id: str,
+    user_id: uuid.UUID,
     data: EditUserInfoRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)                       
 ):
-    return await edit_user_info(user_id=user_id, name=data.name,request=request, email=data.email, db=db)
+    return await edit_user_info(user_id=str(user_id), name=data.name,request=request, email=data.email, db=db)
 
 
 

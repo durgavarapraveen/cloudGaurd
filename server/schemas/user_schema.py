@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 import uuid
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class CreateUserRequest(BaseModel):
 
     username: str = Field(min_length=3, max_length=50)
@@ -43,3 +45,59 @@ class CreateUserByRootUser(BaseModel):
     
     organizationId: uuid.UUID
     
+
+
+# ──────────────────────────────────────────────────────────────
+#  Response models
+#
+#  Routes that return ORM User / RootUsers rows must declare one of these as
+#  their response_model. The ORM rows carry the Argon2 password hash, and
+#  FastAPI serialises every attribute unless a response model restricts it.
+# ──────────────────────────────────────────────────────────────
+
+
+class UserPublic(BaseModel):
+    """A user, without the password hash."""
+
+    id: uuid.UUID
+
+    username: str
+
+    email: EmailStr
+
+    is_active: bool
+
+    organization_id: uuid.UUID | None = None
+
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrganizationPublic(BaseModel):
+
+    id: uuid.UUID
+
+    name: str
+
+    slug: str
+
+    description: str | None = None
+
+    is_active: bool | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RootUserPublic(BaseModel):
+    """A platform operator and the organizations they own, without the hash."""
+
+    id: uuid.UUID
+
+    username: str
+
+    role: str | None = None
+
+    organization: list[OrganizationPublic] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)

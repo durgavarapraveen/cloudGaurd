@@ -270,11 +270,14 @@ export default function OrganizationsPage() {
                     i !== orgs.length - 1 ? "border-b border-white/[0.04]" : ""
                   }`}
                 >
-                  <Link href={`/admin/${org.id}`}>
-                    <td className="px-5 py-3.5 text-[13px] text-slate-200 font-medium">
+                  <td className="px-5 py-3.5 text-[13px] text-slate-200 font-medium">
+                    <Link
+                      href={`/admin/${org.id}`}
+                      className="hover:text-white hover:underline"
+                    >
                       {org.name}
-                    </td>
-                  </Link>
+                    </Link>
+                  </td>
                   <td className="px-5 py-3.5">
                     <span className="text-[12px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-mono">
                       {org.slug}

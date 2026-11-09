@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { consumeSessionHandoff, hasSession } from "@/lib/session";
+import { hasSession } from "@/lib/session";
 import Sidebar from "@/components/Sidebar";
 
 const dashboardIcon = (
@@ -63,7 +63,6 @@ export default function AdminLayout({
   //   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   //   useEffect(() => {
-  //     consumeSessionHandoff();
   //     setIsAuthenticated(hasSession());
   //     setReady(true);
   //   }, []);

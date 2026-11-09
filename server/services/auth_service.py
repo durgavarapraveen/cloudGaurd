@@ -7,7 +7,7 @@ from sqlalchemy import select
 import hashlib
 
 
-from auth.password import hash_password, verify_password
+from auth.password import generate_temp_password, hash_password, verify_password
 from auth.jwt_handler import checkRefreshTokenValidity, create_access_token, create_refresh_token, generate_reset_token
 
 from repository.user_repository import (
@@ -27,7 +27,6 @@ from schemas.user_schema import (
 )
 
 import os
-from os import urandom
 from pathlib import Path
 from dotenv import load_dotenv
 from cache.user_permissions_cache import permissions_cache
@@ -40,6 +39,7 @@ load_dotenv(ROOT_DIR / "infra" / ".env")
 secret_key = os.getenv("JWT_SECRET_KEY")
 
 from .mail_service import (
+    build_tenant_login_url,
     send_admin_created_account_email,
     send_forgot_password_email
 )
@@ -51,7 +51,14 @@ async def register_user(db: AsyncSession, data: CreateUserRequest):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    result = await db.execute(select(Role).where(Role.name == "user"))
+    # Scope the default role to the user's own organization, so a role row from
+    # another tenant is never attached.
+    result = await db.execute(
+        select(Role).where(
+            Role.name == "user",
+            Role.organization_id == data.organizationId,
+        )
+    )
     default_role = result.scalar_one_or_none()
 
     user = User(
@@ -164,12 +171,12 @@ async def register_user_by_admin(db: AsyncSession, data: CreateUserRequest, requ
     existing_user = await get_user_by_email(db, data.email, request)
     organization = await CheckOrganizationwithID(db, organization_id)
     slug = organization.slug
-    login_urls = f"{slug}.{os.getenv('FRONT_END_URL')}/login"
+    login_urls = build_tenant_login_url(slug)
 
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
-    
-    password = urandom(8)
+
+    password = generate_temp_password()
     user = User(
         username=data.username,
         email=data.email,

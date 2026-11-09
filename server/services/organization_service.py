@@ -16,7 +16,6 @@ async def createNewOrganizationService(db: AsyncSession, data: CreateNewOrganiza
     userID = uuid.UUID(str(id))
     
     existingOrganization = await CheckOrganization(db, data.name)
-    print(existingOrganization)
     if existingOrganization:
         raise HTTPException(status_code=400, detail="Organization with this Name Exists")
     organization = Organization(
@@ -33,9 +32,9 @@ async def updateOrganization(db: AsyncSession, data: CreateNewOrganization, id: 
         raise HTTPException(status_code=400, detail="Organization does not Exists")
     existingOrganization.name = data.name
     existingOrganization.slug = data.slug
-    existingOrganization.description=data.description 
-    db.commit()
-    db.refresh(existingOrganization)
+    existingOrganization.description=data.description
+    await db.commit()
+    await db.refresh(existingOrganization)
     return existingOrganization
 
 async def deleteOrganization(db: AsyncSession, id: str):
@@ -43,24 +42,24 @@ async def deleteOrganization(db: AsyncSession, id: str):
     if not existingOrganization:
         raise HTTPException(status_code=400, detail="Organization does not Exists")
     existingOrganization.is_deleted=True
-    db.commit()
-    db.refresh(existingOrganization)
+    await db.commit()
+    await db.refresh(existingOrganization)
     return existingOrganization
 
 async def inactiveOrganization(db: AsyncSession, id: str):
     existingOrganization = await CheckOrganizationwithID(db, id)
     if not existingOrganization:
         raise HTTPException(status_code=400, detail="Organization does not Exists")
-    existingOrganization.is_active=True
-    db.commit()
-    db.refresh(existingOrganization)
+    existingOrganization.is_active=False
+    await db.commit()
+    await db.refresh(existingOrganization)
     return existingOrganization
 
 async def getOrganization(db: AsyncSession, id: str):
     existingOrganization = await CheckOrganizationwithID(db, id)
     if not existingOrganization:
         raise HTTPException(status_code=400, detail="Organization does not Exists")
-    if existingOrganization.is_active:
+    if not existingOrganization.is_active:
         raise HTTPException(status_code=400, detail="Organization is in Inactive Mode")
     if existingOrganization.is_deleted:
         raise HTTPException(status_code=400, detail="Organization is Deleted")
